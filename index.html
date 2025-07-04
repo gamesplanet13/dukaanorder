@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Order Converter</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    textarea { width: 100%; height: 250px; font-size: 14px; }
+    pre { background: #f0f0f0; padding: 10px; white-space: pre-wrap; font-size: 14px; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<h2>Order Details Converter</h2>
+<textarea id="input" placeholder="Paste order details here"></textarea><br><br>
+<button onclick="convert()">Convert</button>
+
+<h3>Converted Output:</h3>
+<pre id="output"></pre>
+
+<script>
+function convert() {
+  let text = document.getElementById("input").value;
+
+  let orderId = (text.match(/#\d+/) || [""])[0];
+  let name = (text.match(/Name\s*\n\n(.*)/) || ["",""])[1].trim();
+  let mobile = (text.match(/Mobile\s*\n\n\+91-?(\d{10})/) || ["",""])[1];
+  let altMobile = (text.match(/Alternate Mobile Number\s*\n\n(\d{10})/) || ["",""])[1];
+  let email = (text.match(/Email\s*\n\n(.*)/i) || ["",""])[1].trim();
+
+  let addressBlock = (text.match(/Shipping address\s*\n\n([\s\S]*?)Payments/) || ["",""])[1].trim();
+
+  let pincode = (addressBlock.match(/(\d{6})/) || [""])[0];
+
+  let state = "";
+  if(addressBlock.match(/\bBihar\b/i)) state = "Bihar";
+  else if(addressBlock.match(/\bUP\b/i)) state = "Uttar Pradesh";
+  else if(addressBlock.match(/\bDelhi\b/i)) state = "Delhi";
+  // add more states as needed
+
+  let city = "";
+  if(addressBlock.match(/\bPatna\b/i)) city = "Patna";
+  else if(addressBlock.match(/\bLucknow\b/i)) city = "Lucknow";
+  else if(addressBlock.match(/\bDelhi\b/i)) city = "Delhi";
+  // add more cities as needed
+
+  let postOffice = city; // if no post office found, use city
+
+  // Remove city, pincode, state from address
+  let cleanAddress = addressBlock
+    .replace(new RegExp(city,"i"), "")
+    .replace(pincode, "")
+    .replace(new RegExp(state,"i"), "")
+    .replace(/,+/g, ",") // remove extra commas
+    .replace(/^,|,$/g, "") // trim commas at ends
+    .replace(/\s{2,}/g, " ") // collapse extra spaces
+    .trim();
+
+  let product = (text.match(/\d+\sitem\s*\n\n(.*)/) || ["",""])[1].trim();
+  if (!product) product = "Electronics";
+
+  let variant = (text.match(/size:\s*(.*)/i) || ["",""])[1].trim();
+
+  let basePrice = (text.match(/1x\s*₹(\d+)/) || ["","9999"])[1];
+  let amountPaid = (text.match(/Total\s*PAID\s*₹(\d+)/i) || ["","9999"])[1];
+
+  let discount = "0";
+  if(text.includes("Coupon discount")) {
+    discount = (text.match(/Coupon discount.*-₹(\d+)/) || ["","0"])[1];
+  }
+
+  let output = `🟢 Prepaid Order on WhatsApp
+
+Order ID: ${orderId}
+
+Name: ${name}
+Mobile: ${mobile}
+Alt Mobile: ${altMobile}
+Email: ${email}
+
+Address: ${cleanAddress}
+
+Pincode: ${pincode}
+State: ${state}
+District/City: ${city}
+Post office: ${postOffice}
+
+Product: ${product}
+Variant: ${variant}
+Base Price: ₹${basePrice}
+Discount Applied: ₹${discount}
+Amount Paid: ₹${amountPaid}
+  `;
+
+  document.getElementById("output").textContent = output;
+}
+</script>
+
+</body>
+</html>
