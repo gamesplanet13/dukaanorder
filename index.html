@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Order Converter</title>
+  <title>Order Converter with City & State Detection</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     textarea { width: 100%; height: 250px; font-size: 14px; }
@@ -20,6 +20,14 @@
 <pre id="output"></pre>
 
 <script>
+let cities = [];
+
+// Replace with your GitHub raw URL for cities.json
+fetch("https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPO/cities.json")
+  .then(response => response.json())
+  .then(data => { cities = data; })
+  .catch(err => console.error("Error loading cities.json:", err));
+
 function convert() {
   let text = document.getElementById("input").value;
 
@@ -33,28 +41,65 @@ function convert() {
 
   let pincode = (addressBlock.match(/(\d{6})/) || [""])[0];
 
+  // Existing state detection logic
   let state = "";
-  if(addressBlock.match(/\bBihar\b/i)) state = "Bihar";
-  else if(addressBlock.match(/\bUP\b/i)) state = "Uttar Pradesh";
+  if(addressBlock.match(/\bAndhra Pradesh\b/i)) state = "Andhra Pradesh";
+  else if(addressBlock.match(/\bArunachal Pradesh\b/i)) state = "Arunachal Pradesh";
+  else if(addressBlock.match(/\bAssam\b/i)) state = "Assam";
+  else if(addressBlock.match(/\bBihar\b/i)) state = "Bihar";
+  else if(addressBlock.match(/\bChhattisgarh\b/i)) state = "Chhattisgarh";
+  else if(addressBlock.match(/\bGoa\b/i)) state = "Goa";
+  else if(addressBlock.match(/\bGujarat\b/i)) state = "Gujarat";
+  else if(addressBlock.match(/\bHaryana\b/i)) state = "Haryana";
+  else if(addressBlock.match(/\bHimachal Pradesh\b/i)) state = "Himachal Pradesh";
+  else if(addressBlock.match(/\bJharkhand\b/i)) state = "Jharkhand";
+  else if(addressBlock.match(/\bKarnataka\b/i)) state = "Karnataka";
+  else if(addressBlock.match(/\bKerala\b/i)) state = "Kerala";
+  else if(addressBlock.match(/\bMadhya Pradesh\b/i)) state = "Madhya Pradesh";
+  else if(addressBlock.match(/\bMaharashtra\b/i)) state = "Maharashtra";
+  else if(addressBlock.match(/\bManipur\b/i)) state = "Manipur";
+  else if(addressBlock.match(/\bMeghalaya\b/i)) state = "Meghalaya";
+  else if(addressBlock.match(/\bMizoram\b/i)) state = "Mizoram";
+  else if(addressBlock.match(/\bNagaland\b/i)) state = "Nagaland";
+  else if(addressBlock.match(/\bOdisha\b/i)) state = "Odisha";
+  else if(addressBlock.match(/\bPunjab\b/i)) state = "Punjab";
+  else if(addressBlock.match(/\bRajasthan\b/i)) state = "Rajasthan";
+  else if(addressBlock.match(/\bSikkim\b/i)) state = "Sikkim";
+  else if(addressBlock.match(/\bTamil Nadu\b/i)) state = "Tamil Nadu";
+  else if(addressBlock.match(/\bTelangana\b/i)) state = "Telangana";
+  else if(addressBlock.match(/\bTripura\b/i)) state = "Tripura";
+  else if(addressBlock.match(/\bUttar Pradesh\b/i) || addressBlock.match(/\bUP\b/i)) state = "Uttar Pradesh";
+  else if(addressBlock.match(/\bUttarakhand\b/i)) state = "Uttarakhand";
+  else if(addressBlock.match(/\bWest Bengal\b/i)) state = "West Bengal";
+  else if(addressBlock.match(/\bAndaman\b/i)) state = "Andaman and Nicobar Islands";
+  else if(addressBlock.match(/\bChandigarh\b/i)) state = "Chandigarh";
+  else if(addressBlock.match(/\bDadra\b/i) || addressBlock.match(/\bDaman\b/i)) state = "Dadra and Nagar Haveli and Daman and Diu";
   else if(addressBlock.match(/\bDelhi\b/i)) state = "Delhi";
-  // add more states as needed
+  else if(addressBlock.match(/\bJammu\b/i) || addressBlock.match(/\bKashmir\b/i)) state = "Jammu and Kashmir";
+  else if(addressBlock.match(/\bLadakh\b/i)) state = "Ladakh";
+  else if(addressBlock.match(/\bLakshadweep\b/i)) state = "Lakshadweep";
+  else if(addressBlock.match(/\bPuducherry\b/i)) state = "Puducherry";
 
+  // City detection using cities.json
   let city = "";
-  if(addressBlock.match(/\bPatna\b/i)) city = "Patna";
-  else if(addressBlock.match(/\bLucknow\b/i)) city = "Lucknow";
-  else if(addressBlock.match(/\bDelhi\b/i)) city = "Delhi";
-  // add more cities as needed
+  for (const c of cities) {
+    const re = new RegExp(`\\b${c.city}\\b`, 'i');
+    if(re.test(addressBlock)) {
+      city = c.city;
+      if (!state) state = c.state; // auto-fill state if not already detected
+      break;
+    }
+  }
 
-  let postOffice = city; // if no post office found, use city
+  let postOffice = city || "";
 
-  // Remove city, pincode, state from address
   let cleanAddress = addressBlock
     .replace(new RegExp(city,"i"), "")
     .replace(pincode, "")
     .replace(new RegExp(state,"i"), "")
-    .replace(/,+/g, ",") // remove extra commas
-    .replace(/^,|,$/g, "") // trim commas at ends
-    .replace(/\s{2,}/g, " ") // collapse extra spaces
+    .replace(/,+/g, ",")
+    .replace(/^,|,$/g, "")
+    .replace(/\s{2,}/g, " ")
     .trim();
 
   let product = (text.match(/\d+\sitem\s*\n\n(.*)/) || ["",""])[1].trim();
