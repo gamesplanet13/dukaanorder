@@ -2,143 +2,295 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Order Converter with City & State Detection</title>
+  <title>Final Order Converter with Abandoned Cart</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     textarea { width: 100%; height: 250px; font-size: 14px; }
     pre { background: #f0f0f0; padding: 10px; white-space: pre-wrap; font-size: 14px; }
-    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    button { padding: 10px 15px; font-size: 14px; margin: 4px; cursor: pointer; }
   </style>
 </head>
 <body>
 
-<h2>Order Details Converter</h2>
-<textarea id="input" placeholder="Paste order details here"></textarea><br><br>
-<button onclick="convert()">Convert</button>
+<h2>Prepaid Order + Thanks Converter (Final Patched with Abandoned Cart)</h2>
 
-<h3>Converted Output:</h3>
+<textarea id="input" placeholder="Paste order details here"></textarea><br><br>
+
+<button onclick="selectAll()">Select All</button>
+<button onclick="clearText()">Clear</button>
+<button onclick="convert()">Convert</button>
+<button onclick="copyAll()">Copy All</button>
+<button onclick="sendToCustomer()">Send to Customer WhatsApp</button>
+<button onclick="sendToOwn()">Send to Own WhatsApp</button>
+<button onclick="sendThanks()">Send Thanks</button>
+<button onclick="sendAbandonedCart()">Send Abandoned Cart WhatsApp</button>
+
 <pre id="output"></pre>
 
 <script>
-let cities = [];
+// Product list
+const products = ["m33","m22","gd30","gd30v2","gd30v3","g11pro","g11pro special edition","fmcb","fmcb + usb top","fmcb + usb optional","m88","m15pro","pandora mini","pandora pro","gamestick lite","gamestick pro","gd35","r35s","r36s","sd card","gamestick gd10","gamebox g10"];
 
-// Replace with your GitHub raw URL for cities.json
-fetch("https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPO/cities.json")
+let pincodeLatLng = {};
+fetch('pincode_data.json')
   .then(response => response.json())
-  .then(data => { cities = data; })
-  .catch(err => console.error("Error loading cities.json:", err));
+  .then(data => { pincodeLatLng = data; })
+  .catch(error => console.log("Error loading pincode data:", error));
+
+function selectAll() {
+  let input = document.getElementById("input");
+  input.focus();
+  input.select();
+}
+
+function clearText() {
+  document.getElementById("input").value = "";
+  document.getElementById("output").textContent = "";
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+            Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+            Math.sin(dLon/2)*Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function estimateDeliveryByDistance(distance) {
+  if (distance <= 30) return "1 day";
+  else if (distance <= 60) return "1-2 days";
+  else if (distance <= 100) return "2-3 days";
+  else if (distance <= 200) return "3-4 days";
+  else if (distance <= 500) return "4-5 days";
+  else if (distance <= 1000) return "4-6 days";
+  else if (distance <= 1500) return "5–7 days";
+  else if (distance <= 2000) return "6–8 days";
+  else if (distance <= 3000) return "6–10 days";
+  else return "8–12 days (sometimes up to 15 days)";
+}
 
 function convert() {
-  let text = document.getElementById("input").value;
+  let input = document.getElementById("input").value.toLowerCase();
 
-  let orderId = (text.match(/#\d+/) || [""])[0];
-  let name = (text.match(/Name\s*\n\n(.*)/) || ["",""])[1].trim();
-  let mobile = (text.match(/Mobile\s*\n\n\+91-?(\d{10})/) || ["",""])[1];
-  let altMobile = (text.match(/Alternate Mobile Number\s*\n\n(\d{10})/) || ["",""])[1];
-  let email = (text.match(/Email\s*\n\n(.*)/i) || ["",""])[1].trim();
+  let orderMatch = input.match(/#\d{5,}/);
+  let orderId = orderMatch ? orderMatch[0] : "Not found";
 
-  let addressBlock = (text.match(/Shipping address\s*\n\n([\s\S]*?)Payments/) || ["",""])[1].trim();
+  let nameMatch = input.match(/name\s*\n([^\n]+)/i);
+  let name = nameMatch ? nameMatch[1].trim() : "Customer";
 
-  let pincode = (addressBlock.match(/(\d{6})/) || [""])[0];
+  let mobileMatch = input.match(/mobile\s*\n([^\n]+)/i);
+  let mobile = mobileMatch ? mobileMatch[1].trim() : "";
 
-  // Existing state detection logic
-  let state = "";
-  if(addressBlock.match(/\bAndhra Pradesh\b/i)) state = "Andhra Pradesh";
-  else if(addressBlock.match(/\bArunachal Pradesh\b/i)) state = "Arunachal Pradesh";
-  else if(addressBlock.match(/\bAssam\b/i)) state = "Assam";
-  else if(addressBlock.match(/\bBihar\b/i)) state = "Bihar";
-  else if(addressBlock.match(/\bChhattisgarh\b/i)) state = "Chhattisgarh";
-  else if(addressBlock.match(/\bGoa\b/i)) state = "Goa";
-  else if(addressBlock.match(/\bGujarat\b/i)) state = "Gujarat";
-  else if(addressBlock.match(/\bHaryana\b/i)) state = "Haryana";
-  else if(addressBlock.match(/\bHimachal Pradesh\b/i)) state = "Himachal Pradesh";
-  else if(addressBlock.match(/\bJharkhand\b/i)) state = "Jharkhand";
-  else if(addressBlock.match(/\bKarnataka\b/i)) state = "Karnataka";
-  else if(addressBlock.match(/\bKerala\b/i)) state = "Kerala";
-  else if(addressBlock.match(/\bMadhya Pradesh\b/i)) state = "Madhya Pradesh";
-  else if(addressBlock.match(/\bMaharashtra\b/i)) state = "Maharashtra";
-  else if(addressBlock.match(/\bManipur\b/i)) state = "Manipur";
-  else if(addressBlock.match(/\bMeghalaya\b/i)) state = "Meghalaya";
-  else if(addressBlock.match(/\bMizoram\b/i)) state = "Mizoram";
-  else if(addressBlock.match(/\bNagaland\b/i)) state = "Nagaland";
-  else if(addressBlock.match(/\bOdisha\b/i)) state = "Odisha";
-  else if(addressBlock.match(/\bPunjab\b/i)) state = "Punjab";
-  else if(addressBlock.match(/\bRajasthan\b/i)) state = "Rajasthan";
-  else if(addressBlock.match(/\bSikkim\b/i)) state = "Sikkim";
-  else if(addressBlock.match(/\bTamil Nadu\b/i)) state = "Tamil Nadu";
-  else if(addressBlock.match(/\bTelangana\b/i)) state = "Telangana";
-  else if(addressBlock.match(/\bTripura\b/i)) state = "Tripura";
-  else if(addressBlock.match(/\bUttar Pradesh\b/i) || addressBlock.match(/\bUP\b/i)) state = "Uttar Pradesh";
-  else if(addressBlock.match(/\bUttarakhand\b/i)) state = "Uttarakhand";
-  else if(addressBlock.match(/\bWest Bengal\b/i)) state = "West Bengal";
-  else if(addressBlock.match(/\bAndaman\b/i)) state = "Andaman and Nicobar Islands";
-  else if(addressBlock.match(/\bChandigarh\b/i)) state = "Chandigarh";
-  else if(addressBlock.match(/\bDadra\b/i) || addressBlock.match(/\bDaman\b/i)) state = "Dadra and Nagar Haveli and Daman and Diu";
-  else if(addressBlock.match(/\bDelhi\b/i)) state = "Delhi";
-  else if(addressBlock.match(/\bJammu\b/i) || addressBlock.match(/\bKashmir\b/i)) state = "Jammu and Kashmir";
-  else if(addressBlock.match(/\bLadakh\b/i)) state = "Ladakh";
-  else if(addressBlock.match(/\bLakshadweep\b/i)) state = "Lakshadweep";
-  else if(addressBlock.match(/\bPuducherry\b/i)) state = "Puducherry";
+  let altMobileMatch = input.match(/alternate mobile number\s*\n([^\n]+)/i);
+  let altMobile = altMobileMatch ? altMobileMatch[1].trim() : "";
 
-  // City detection using cities.json
-  let city = "";
-  for (const c of cities) {
-    const re = new RegExp(`\\b${c.city}\\b`, 'i');
-    if(re.test(addressBlock)) {
-      city = c.city;
-      if (!state) state = c.state; // auto-fill state if not already detected
+  let emailMatch = input.match(/email\s*\n([^\n]+)/i);
+  let email = emailMatch ? emailMatch[1].trim() : "";
+
+  let addressMatch = input.match(/shipping address\s*\n([^\n]+)/i);
+  let address = addressMatch ? addressMatch[1].trim() : "";
+
+  let pincodeMatch = input.match(/\b\d{6}\b/);
+  let pincode = pincodeMatch ? pincodeMatch[0] : "";
+
+  let basePriceMatch = input.match(/1x\s*₹([\d,]+)/i);
+  let basePrice = basePriceMatch ? `₹${basePriceMatch[1]}` : "N/A";
+
+  let discountMatch = input.match(/Coupon discount.*-\₹(\d+)/i);
+  let discount = discountMatch ? `₹${discountMatch[1]}` : "0";
+
+  let paidMatch = input.match(/Total\s*PAID\s*₹([\d,]+)/i);
+  let amountPaid = paidMatch ? `₹${paidMatch[1]}` : "N/A";
+
+  // Detect product dynamically (longest match first)
+  products.sort((a,b) => b.length - a.length);
+  let detectedProduct = "Unknown Product";
+  for (let p of products) {
+    if (input.includes(p)) {
+      detectedProduct = p.toUpperCase();
       break;
     }
   }
 
-  let postOffice = city || "";
+  let variant = "";
+  if (detectedProduct.includes("M88")) variant = "128GB";
 
-  let cleanAddress = addressBlock
-    .replace(new RegExp(city,"i"), "")
-    .replace(pincode, "")
-    .replace(new RegExp(state,"i"), "")
-    .replace(/,+/g, ",")
-    .replace(/^,|,$/g, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+  let city = "Unknown";
+  let state = "Unknown";
+  let distance = "N/A";
+  let eta = "N/A";
 
-  let product = (text.match(/\d+\sitem\s*\n\n(.*)/) || ["",""])[1].trim();
-  if (!product) product = "Electronics";
+  if (pincode in pincodeLatLng) {
+    let dest = pincodeLatLng[pincode];
+    city = dest.city;
+    state = dest.state;
 
-  let variant = (text.match(/size:\s*(.*)/i) || ["",""])[1].trim();
-
-  let basePrice = (text.match(/1x\s*₹(\d+)/) || ["","9999"])[1];
-  let amountPaid = (text.match(/Total\s*PAID\s*₹(\d+)/i) || ["","9999"])[1];
-
-  let discount = "0";
-  if(text.includes("Coupon discount")) {
-    discount = (text.match(/Coupon discount.*-₹(\d+)/) || ["","0"])[1];
+    distance = haversine(28.8,79.0,dest.lat,dest.lng).toFixed(0);
+    eta = estimateDeliveryByDistance(distance);
   }
 
-  let output = `🟢 Prepaid Order on WhatsApp
+  let outputText = 
+`🟢 Prepaid Order on Dukaan
 
 Order ID: ${orderId}
-
 Name: ${name}
 Mobile: ${mobile}
 Alt Mobile: ${altMobile}
 Email: ${email}
 
-Address: ${cleanAddress}
-
+Address: ${address}
 Pincode: ${pincode}
 State: ${state}
 District/City: ${city}
-Post office: ${postOffice}
+Post office: ${city}
 
-Product: ${product}
-Variant: ${variant}
-Base Price: ₹${basePrice}
-Discount Applied: ₹${discount}
-Amount Paid: ₹${amountPaid}
-  `;
+Product: ${detectedProduct} ${variant}
+Base Price: ${basePrice}
+Discount Applied: ${discount}
+Amount Paid: ${amountPaid}
+Distance: ${distance} km
+Estimated Delivery: ${eta}`;
 
-  document.getElementById("output").textContent = output;
+  document.getElementById("output").textContent = outputText;
+}
+
+function copyAll() {
+  let output = document.getElementById("output").textContent;
+  navigator.clipboard.writeText(output).then(() => {
+    alert("Output copied to clipboard!");
+  });
+}
+
+function sendToCustomer() {
+  let input = document.getElementById("input").value;
+  let mobileMatch = input.match(/\+91[-\s]?[0-9]{10}/);
+  let mobile = mobileMatch ? mobileMatch[0].replace(/\s|-/g,"") : "";
+  let msg = encodeURIComponent(document.getElementById("output").textContent);
+  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank");
+  else alert("Customer mobile number not found in input.");
+}
+
+function sendToOwn() {
+  let msg = encodeURIComponent(document.getElementById("output").textContent);
+  window.open(`https://wa.me/917983624797?text=${msg}`, "_blank");
+}
+
+function sendThanks() {
+  let output = document.getElementById("output").textContent;
+
+  let nameMatch = output.match(/Name: ([^\n]+)/);
+  let name = nameMatch ? nameMatch[1] : "Customer";
+
+  let orderMatch = output.match(/Order ID: ([^\n]+)/);
+  let orderId = orderMatch ? orderMatch[1] : "Not found";
+
+  let pincodeMatch = output.match(/Pincode: ([^\n]+)/);
+  let pincode = pincodeMatch ? pincodeMatch[1] : "";
+
+  let distanceMatch = output.match(/Distance: ([^\n]+)/);
+  let distance = distanceMatch ? distanceMatch[1] : "";
+
+  let etaMatch = output.match(/Estimated Delivery: ([^\n]+)/);
+  let eta = etaMatch ? etaMatch[1] : "few days";
+
+  let productLine = output.match(/Product: ([^\n]+)/);
+  let product = productLine ? productLine[1].trim() : "";
+
+  let thanksMsg = encodeURIComponent(
+`🌟 GamesPlanet
+🙏 Hello ${name} ji, thank you for your order ${orderId}.
+📦 Product: ${product}
+📍 Pincode: ${pincode} | 📏 Distance: ${distance}
+⏳ Estimated Delivery: ${eta}
+🚚 Your order will be shipped soon between 8PM–10PM.
+🔗 Tracking will update on our website after dispatch.
+🖼️ On request, we can share the parcel photo & tracking number here on WhatsApp.
+💚 Team GamesPlanet`
+  );
+
+  let inputText = document.getElementById("input").value;
+  let mobileMatchInput = inputText.match(/\+91[-\s]?[0-9]{10}/);
+  let mobile = mobileMatchInput ? mobileMatchInput[0].replace(/\s|-/g,"") : "";
+  if(mobile) window.open(`https://wa.me/${mobile}?text=${thanksMsg}`, "_blank");
+  else alert("Customer mobile number not found in input.");
+}
+
+function sendAbandonedCart() {
+  let output = document.getElementById("output").textContent;
+
+  let nameMatch = output.match(/Name: ([^\n]+)/);
+  let name = nameMatch ? nameMatch[1].trim() : "Customer";
+
+  let orderMatch = output.match(/Order ID: ([^\n]+)/);
+  let orderId = orderMatch ? orderMatch[1].trim() : "Not found";
+
+  let productMatch = output.match(/Product: ([^\n]+)/);
+  let product = productMatch ? productMatch[1].trim() : "";
+
+  let basePriceMatch = output.match(/Base Price: ₹([\d,]+)/);
+  let basePrice = basePriceMatch ? parseInt(basePriceMatch[1].replace(/,/g, '')) : 0;
+
+  let discountMatch = output.match(/Discount Applied: ₹([\d,]+)/);
+  let discount = discountMatch ? parseInt(discountMatch[1].replace(/,/g, '')) : 0;
+
+  let prepaidAmount = basePrice - discount;
+
+  let codAdvance = Math.round(basePrice * 0.10);
+  if (codAdvance < 500) codAdvance = 500;
+
+  let codRemaining = basePrice - codAdvance;
+
+  let etaMatch = output.match(/Estimated Delivery: ([^\n]+)/);
+  let prepaidEta = etaMatch ? etaMatch[1] : "few days";
+
+  let codEta = prepaidEta;
+  if (prepaidEta.includes('day')) {
+    let days = prepaidEta.match(/\d+/g);
+    if (days && days.length >= 1) {
+      let start = parseInt(days[0]) + 2;
+      let end = days.length == 2 ? parseInt(days[1]) + 2 : start;
+      codEta = `${start}–${end} days`;
+    }
+  }
+
+  let addressMatch = output.match(/Address: ([^\n]+)/);
+  let address = addressMatch ? addressMatch[1].trim() : "";
+
+  let msg = encodeURIComponent(
+`🌟 GamesPlanet
+
+🙏 Hello ${name} ji,
+
+📝 Order Details:
+– Order ID: ${orderId}
+– Product: ${product}
+– Base Price: ₹${basePrice}
+
+💰 Prepaid Offer: ₹${basePrice} – ₹${discount} discount = ₹${prepaidAmount}
+🚚 Estimated Delivery:
+– Prepaid: ${prepaidEta}
+
+💵 COD: ₹${basePrice} (no discount)
+➡ COD Advance: ₹${codAdvance}
+➡ Remaining on Delivery: ₹${codRemaining}
+🚚 Estimated Delivery:
+– COD: ${codEta}
+
+🏠 Delivery Address:
+${address}
+
+👉 Complete payment soon to confirm your order.
+💚 Team GamesPlanet`
+  );
+
+  let inputText = document.getElementById("input").value;
+  let mobileMatchInput = inputText.match(/\+91[-\s]?[0-9]{10}/);
+  let mobile = mobileMatchInput ? mobileMatchInput[0].replace(/\s|-/g,"") : "";
+  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank");
+  else alert("Customer mobile number not found in input.");
 }
 </script>
 
