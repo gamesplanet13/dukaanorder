@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Final Order Converter with Abandoned Cart</title>
+  <title>GamesPlanet Final Order Converter</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     textarea { width: 100%; height: 250px; font-size: 14px; }
@@ -12,7 +12,7 @@
 </head>
 <body>
 
-<h2>Prepaid Order + Thanks Converter (Final Patched with Abandoned Cart)</h2>
+<h2>GamesPlanet Final Order Converter (Stable)</h2>
 
 <textarea id="input" placeholder="Paste order details here"></textarea><br><br>
 
@@ -28,35 +28,23 @@
 <pre id="output"></pre>
 
 <script>
-// Product list
-const products = ["m33","m22","gd30","gd30v2","gd30v3","g11pro","g11pro special edition","fmcb","fmcb + usb top","fmcb + usb optional","m88","m15pro","pandora mini","pandora pro","gamestick lite","gamestick pro","gd35","r35s","r36s","sd card","gamestick gd10","gamebox g10"];
-
+// Load pincode data
 let pincodeLatLng = {};
 fetch('pincode_data.json')
   .then(response => response.json())
   .then(data => { pincodeLatLng = data; })
   .catch(error => console.log("Error loading pincode data:", error));
 
-function selectAll() {
-  let input = document.getElementById("input");
-  input.focus();
-  input.select();
-}
+// Product list
+const products = ["m33","m22","gd30","gd30v2","gd30v3","g11pro","g11pro special edition","fmcb","fmcb + usb top","fmcb + usb optional","m88","m15pro","pandora mini","pandora pro","gamestick lite","gamestick pro","gd35","r35s","r36s","sd card","gamestick gd10","gamebox g10"];
 
-function clearText() {
-  document.getElementById("input").value = "";
-  document.getElementById("output").textContent = "";
-}
+function selectAll() { let input = document.getElementById("input"); input.focus(); input.select(); }
+function clearText() { document.getElementById("input").value = ""; document.getElementById("output").textContent = ""; }
 
 function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
-            Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
-            Math.sin(dLon/2)*Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
+  const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)*Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R * c;
 }
 
 function estimateDeliveryByDistance(distance) {
@@ -75,59 +63,33 @@ function estimateDeliveryByDistance(distance) {
 function convert() {
   let input = document.getElementById("input").value.toLowerCase();
 
-  let orderMatch = input.match(/#\d{5,}/);
-  let orderId = orderMatch ? orderMatch[0] : "Not found";
+  let orderId = input.match(/#\d{5,}/)?.[0] || "Not found";
+  let name = input.match(/name\s*\n([^\n]+)/i)?.[1].trim() || "Customer";
+  let mobile = input.match(/mobile\s*\n([^\n]+)/i)?.[1].trim() || "";
+  let altMobile = input.match(/alternate mobile number\s*\n([^\n]+)/i)?.[1].trim() || "";
+  let email = input.match(/email\s*\n([^\n]+)/i)?.[1].trim() || "";
+  let address = input.match(/shipping address\s*\n([^\n]+)/i)?.[1].trim() || "";
+  let pincode = input.match(/\b\d{6}\b/)?.[0] || "";
+  let basePrice = input.match(/1x\s*₹([\d,]+)/i)?.[1].replace(/,/g,"") || "0";
 
-  let nameMatch = input.match(/name\s*\n([^\n]+)/i);
-  let name = nameMatch ? nameMatch[1].trim() : "Customer";
-
-  let mobileMatch = input.match(/mobile\s*\n([^\n]+)/i);
-  let mobile = mobileMatch ? mobileMatch[1].trim() : "";
-
-  let altMobileMatch = input.match(/alternate mobile number\s*\n([^\n]+)/i);
-  let altMobile = altMobileMatch ? altMobileMatch[1].trim() : "";
-
-  let emailMatch = input.match(/email\s*\n([^\n]+)/i);
-  let email = emailMatch ? emailMatch[1].trim() : "";
-
-  let addressMatch = input.match(/shipping address\s*\n([^\n]+)/i);
-  let address = addressMatch ? addressMatch[1].trim() : "";
-
-  let pincodeMatch = input.match(/\b\d{6}\b/);
-  let pincode = pincodeMatch ? pincodeMatch[0] : "";
-
-  let basePriceMatch = input.match(/1x\s*₹([\d,]+)/i);
-  let basePrice = basePriceMatch ? `₹${basePriceMatch[1]}` : "N/A";
-
-  let discountMatch = input.match(/Coupon discount.*-\₹(\d+)/i);
-  let discount = discountMatch ? `₹${discountMatch[1]}` : "0";
-
-  let paidMatch = input.match(/Total\s*PAID\s*₹([\d,]+)/i);
-  let amountPaid = paidMatch ? `₹${paidMatch[1]}` : "N/A";
-
-  // Detect product dynamically (longest match first)
-  products.sort((a,b) => b.length - a.length);
-  let detectedProduct = "Unknown Product";
-  for (let p of products) {
-    if (input.includes(p)) {
-      detectedProduct = p.toUpperCase();
-      break;
-    }
+  let discount = "0";
+  if (input.includes("coupon discount")) {
+    let d = input.match(/coupon discount[^\n]*\n-₹(\d+)/i);
+    discount = d ? d[1] : "0";
   }
 
-  let variant = "";
-  if (detectedProduct.includes("M88")) variant = "128GB";
+  let amountPaid = input.match(/Total\s*PAID\s*₹([\d,]+)/i)?.[1].replace(/,/g,"") || "0";
 
-  let city = "Unknown";
-  let state = "Unknown";
-  let distance = "N/A";
-  let eta = "N/A";
+  // Product detection (longest match first)
+  products.sort((a,b) => b.length - a.length);
+  let detectedProduct = "Unknown Product";
+  for (let p of products) { if (input.includes(p)) { detectedProduct = p.toUpperCase(); break; } }
+  let variant = detectedProduct.includes("M88") ? "128GB" : "";
 
+  let city = "Unknown", state = "Unknown", distance = "N/A", eta = "N/A";
   if (pincode in pincodeLatLng) {
     let dest = pincodeLatLng[pincode];
-    city = dest.city;
-    state = dest.state;
-
+    city = dest.city; state = dest.state;
     distance = haversine(28.8,79.0,dest.lat,dest.lng).toFixed(0);
     eta = estimateDeliveryByDistance(distance);
   }
@@ -148,9 +110,9 @@ District/City: ${city}
 Post office: ${city}
 
 Product: ${detectedProduct} ${variant}
-Base Price: ${basePrice}
-Discount Applied: ${discount}
-Amount Paid: ${amountPaid}
+Base Price: ₹${basePrice}
+Discount Applied: ₹${discount}
+Amount Paid: ₹${amountPaid}
 Distance: ${distance} km
 Estimated Delivery: ${eta}`;
 
@@ -158,19 +120,13 @@ Estimated Delivery: ${eta}`;
 }
 
 function copyAll() {
-  let output = document.getElementById("output").textContent;
-  navigator.clipboard.writeText(output).then(() => {
-    alert("Output copied to clipboard!");
-  });
+  navigator.clipboard.writeText(document.getElementById("output").textContent).then(() => alert("Output copied to clipboard!"));
 }
 
 function sendToCustomer() {
-  let input = document.getElementById("input").value;
-  let mobileMatch = input.match(/\+91[-\s]?[0-9]{10}/);
-  let mobile = mobileMatch ? mobileMatch[0].replace(/\s|-/g,"") : "";
+  let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
   let msg = encodeURIComponent(document.getElementById("output").textContent);
-  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank");
-  else alert("Customer mobile number not found in input.");
+  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input.");
 }
 
 function sendToOwn() {
@@ -179,27 +135,15 @@ function sendToOwn() {
 }
 
 function sendThanks() {
-  let output = document.getElementById("output").textContent;
+  let o = document.getElementById("output").textContent;
+  let name = o.match(/Name: ([^\n]+)/)?.[1] || "Customer";
+  let orderId = o.match(/Order ID: ([^\n]+)/)?.[1] || "Not found";
+  let product = o.match(/Product: ([^\n]+)/)?.[1].trim() || "";
+  let pincode = o.match(/Pincode: ([^\n]+)/)?.[1] || "";
+  let distance = o.match(/Distance: ([^\n]+)/)?.[1] || "";
+  let eta = o.match(/Estimated Delivery: ([^\n]+)/)?.[1] || "";
 
-  let nameMatch = output.match(/Name: ([^\n]+)/);
-  let name = nameMatch ? nameMatch[1] : "Customer";
-
-  let orderMatch = output.match(/Order ID: ([^\n]+)/);
-  let orderId = orderMatch ? orderMatch[1] : "Not found";
-
-  let pincodeMatch = output.match(/Pincode: ([^\n]+)/);
-  let pincode = pincodeMatch ? pincodeMatch[1] : "";
-
-  let distanceMatch = output.match(/Distance: ([^\n]+)/);
-  let distance = distanceMatch ? distanceMatch[1] : "";
-
-  let etaMatch = output.match(/Estimated Delivery: ([^\n]+)/);
-  let eta = etaMatch ? etaMatch[1] : "few days";
-
-  let productLine = output.match(/Product: ([^\n]+)/);
-  let product = productLine ? productLine[1].trim() : "";
-
-  let thanksMsg = encodeURIComponent(
+  let msg = encodeURIComponent(
 `🌟 GamesPlanet
 🙏 Hello ${name} ji, thank you for your order ${orderId}.
 📦 Product: ${product}
@@ -207,71 +151,39 @@ function sendThanks() {
 ⏳ Estimated Delivery: ${eta}
 🚚 Your order will be shipped soon between 8PM–10PM.
 🔗 Tracking will update on our website after dispatch.
-🖼️ On request, we can share the parcel photo & tracking number here on WhatsApp.
-💚 Team GamesPlanet`
-  );
+💚 Team GamesPlanet`);
 
-  let inputText = document.getElementById("input").value;
-  let mobileMatchInput = inputText.match(/\+91[-\s]?[0-9]{10}/);
-  let mobile = mobileMatchInput ? mobileMatchInput[0].replace(/\s|-/g,"") : "";
-  if(mobile) window.open(`https://wa.me/${mobile}?text=${thanksMsg}`, "_blank");
-  else alert("Customer mobile number not found in input.");
+  let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
+  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input.");
 }
 
 function sendAbandonedCart() {
-  let output = document.getElementById("output").textContent;
-
-  let nameMatch = output.match(/Name: ([^\n]+)/);
-  let name = nameMatch ? nameMatch[1].trim() : "Customer";
-
-  let orderMatch = output.match(/Order ID: ([^\n]+)/);
-  let orderId = orderMatch ? orderMatch[1].trim() : "Not found";
-
-  let productMatch = output.match(/Product: ([^\n]+)/);
-  let product = productMatch ? productMatch[1].trim() : "";
-
-  let basePriceMatch = output.match(/Base Price: ₹([\d,]+)/);
-  let basePrice = basePriceMatch ? parseInt(basePriceMatch[1].replace(/,/g, '')) : 0;
-
-  let discountMatch = output.match(/Discount Applied: ₹([\d,]+)/);
-  let discount = discountMatch ? parseInt(discountMatch[1].replace(/,/g, '')) : 0;
-
+  let o = document.getElementById("output").textContent;
+  let name = o.match(/Name: ([^\n]+)/)?.[1] || "Customer";
+  let orderId = o.match(/Order ID: ([^\n]+)/)?.[1] || "Not found";
+  let product = o.match(/Product: ([^\n]+)/)?.[1].trim() || "";
+  let basePrice = parseInt(o.match(/Base Price: ₹([\d,]+)/)?.[1].replace(/,/g, '') || "0");
+  let discount = parseInt(o.match(/Discount Applied: ₹([\d,]+)/)?.[1].replace(/,/g, '') || "0");
   let prepaidAmount = basePrice - discount;
-
-  let codAdvance = Math.round(basePrice * 0.10);
-  if (codAdvance < 500) codAdvance = 500;
-
+  let codAdvance = Math.max(500, Math.round(basePrice * 0.10));
   let codRemaining = basePrice - codAdvance;
 
-  let etaMatch = output.match(/Estimated Delivery: ([^\n]+)/);
-  let prepaidEta = etaMatch ? etaMatch[1] : "few days";
-
-  let codEta = prepaidEta;
-  if (prepaidEta.includes('day')) {
-    let days = prepaidEta.match(/\d+/g);
-    if (days && days.length >= 1) {
-      let start = parseInt(days[0]) + 2;
-      let end = days.length == 2 ? parseInt(days[1]) + 2 : start;
-      codEta = `${start}–${end} days`;
-    }
-  }
-
-  let addressMatch = output.match(/Address: ([^\n]+)/);
-  let address = addressMatch ? addressMatch[1].trim() : "";
+  let eta = o.match(/Estimated Delivery: ([^\n]+)/)?.[1] || "few days";
+  let codEta = eta.includes('day') ? eta.replace(/\d+/g, d => parseInt(d)+2) : eta;
 
   let msg = encodeURIComponent(
 `🌟 GamesPlanet
 
 🙏 Hello ${name} ji,
 
-📝 Order Details:
+📝 incomplete Order Details:
 – Order ID: ${orderId}
 – Product: ${product}
 – Base Price: ₹${basePrice}
 
 💰 Prepaid Offer: ₹${basePrice} – ₹${discount} discount = ₹${prepaidAmount}
 🚚 Estimated Delivery:
-– Prepaid: ${prepaidEta}
+– Prepaid: ${eta}
 
 💵 COD: ₹${basePrice} (no discount)
 ➡ COD Advance: ₹${codAdvance}
@@ -279,18 +191,11 @@ function sendAbandonedCart() {
 🚚 Estimated Delivery:
 – COD: ${codEta}
 
-🏠 Delivery Address:
-${address}
-
 👉 Complete payment soon to confirm your order.
-💚 Team GamesPlanet`
-  );
+💚 Team GamesPlanet`);
 
-  let inputText = document.getElementById("input").value;
-  let mobileMatchInput = inputText.match(/\+91[-\s]?[0-9]{10}/);
-  let mobile = mobileMatchInput ? mobileMatchInput[0].replace(/\s|-/g,"") : "";
-  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank");
-  else alert("Customer mobile number not found in input.");
+  let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
+  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input.");
 }
 </script>
 
