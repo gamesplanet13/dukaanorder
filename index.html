@@ -83,8 +83,21 @@ function convert() {
   // Product detection (longest match first)
   products.sort((a,b) => b.length - a.length);
   let detectedProduct = "Unknown Product";
-  for (let p of products) { if (input.includes(p)) { detectedProduct = p.toUpperCase(); break; } }
-  let variant = detectedProduct.includes("M88") ? "128GB" : "";
+  for (let p of products) {
+    if (input.includes(p)) {
+      detectedProduct = p.toUpperCase();
+      break;
+    }
+  }
+
+  // Variant detection after product
+  let variant = input.match(/size[:\s]*([\w]+)/i)?.[1] || "";
+  if (!variant) {
+    let variantMatches = input.match(/(90xxx|70xxx|fat|64gb|128gb|256gb|500gb|1tb)/ig);
+    if (variantMatches) {
+      variant = variantMatches.map(v => v.toUpperCase()).join(" ");
+    }
+  }
 
   let city = "Unknown", state = "Unknown", distance = "N/A", eta = "N/A";
   if (pincode in pincodeLatLng) {
@@ -109,7 +122,8 @@ State: ${state}
 District/City: ${city}
 Post office: ${city}
 
-Product: ${detectedProduct} ${variant}
+Product: ${detectedProduct}
+Variant: ${variant}
 Base Price: ₹${basePrice}
 Discount Applied: ₹${discount}
 Amount Paid: ₹${amountPaid}
@@ -146,7 +160,7 @@ function sendThanks() {
   let msg = encodeURIComponent(
 `🌟 GamesPlanet
 🙏 Hello ${name} ji, thank you for your order ${orderId}.
-📦 Product: ${product}
+📦 Product: ${product} Variant: ${variant}
 📍 Pincode: ${pincode} | 📏 Distance: ${distance}
 ⏳ Estimated Delivery: ${eta}
 🚚 Your order will be shipped soon between 8PM–10PM.
@@ -180,6 +194,7 @@ function sendAbandonedCart() {
 📝 incomplete Order Details:
 – Order ID: ${orderId}
 – Product: ${product}
+– Variant: ${variant}
 – Base Price: ₹${basePrice}
 
 💰 Prepaid Offer: ₹${basePrice} – ₹${discount} discount = ₹${prepaidAmount}
