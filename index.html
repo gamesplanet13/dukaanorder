@@ -12,7 +12,7 @@
 </head>
 <body>
 
-<h2>GamesPlanet Final Order Converter (Stable)</h2>
+<h2>GamesPlanet Final Order Converter (Stable Patched)</h2>
 
 <textarea id="input" placeholder="Paste order details here"></textarea><br><br>
 
@@ -93,7 +93,7 @@ function convert() {
   // Variant detection after product
   let variant = input.match(/size[:\s]*([\w]+)/i)?.[1] || "";
   if (!variant) {
-    let variantMatches = input.match(/(90xxx|70xxx|fat|64gb|128gb|256gb|500gb|1tb)/ig);
+    let variantMatches = input.match(/(90xxx|70xxx|fat|64gb|128gb|256gb|500gb|1tb|90xxx optional|70xxx optional|fat optional)/ig);
     if (variantMatches) {
       variant = variantMatches.map(v => v.toUpperCase()).join(" ");
     }
@@ -138,9 +138,10 @@ function copyAll() {
 }
 
 function sendToCustomer() {
-  let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
+  let mobile = extractMobile();
   let msg = encodeURIComponent(document.getElementById("output").textContent);
-  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input.");
+  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank");
+  else alert("Customer mobile number not found in input.");
 }
 
 function sendToOwn() {
@@ -160,7 +161,7 @@ function sendThanks() {
   let msg = encodeURIComponent(
 `🌟 GamesPlanet
 🙏 Hello ${name} ji, thank you for your order ${orderId}.
-📦 Product: ${product} Variant: ${variant}
+📦 Product: ${product} | Variant: ${variant}
 📍 Pincode: ${pincode} | 📏 Distance: ${distance}
 ⏳ Estimated Delivery: ${eta}
 🚚 Your order will be shipped soon between 8PM–10PM.
@@ -168,8 +169,9 @@ function sendThanks() {
 🖼️ On request, we can send *parcel pic & tracking number* here on WhatsApp.
 💚 Team GamesPlanet`);
 
-  let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
-  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input.");
+  let mobile = extractMobile();
+  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank");
+  else alert("Customer mobile number not found in input.");
 }
 
 function sendAbandonedCart() {
@@ -193,8 +195,7 @@ function sendAbandonedCart() {
 
 📝 incomplete Order Details:
 – Order ID: ${orderId}
-– Product: ${product}
-– Variant: ${variant}
+– Product: ${product} Variant: ${variant}
 – Base Price: ₹${basePrice}
 
 💰 Prepaid Offer: ₹${basePrice} – ₹${discount} discount = ₹${prepaidAmount}
@@ -210,8 +211,21 @@ function sendAbandonedCart() {
 👉 Complete payment soon to confirm your order.
 💚 Team GamesPlanet`);
 
-  let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
-  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input.");
+  let mobile = extractMobile();
+  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank");
+  else alert("Customer mobile number not found in input.");
+}
+
+function extractMobile() {
+  let input = document.getElementById("input").value;
+  let mobile = input.match(/\+91[-\s]?[0-9]{10}/);
+  if (!mobile) {
+    mobile = input.match(/(?:^|\D)([6-9][0-9]{9})(?:\D|$)/);
+    if (mobile) mobile = "91" + mobile[1];
+  } else {
+    mobile = mobile[0].replace(/\s|-/g,"").replace("+","");
+  }
+  return mobile;
 }
 </script>
 
