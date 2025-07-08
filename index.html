@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>GamesPlanet Final Order Converter</title>
+  <title>GamesPlanet Final Order Converter (Patched Final)</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     textarea { width: 100%; height: 250px; font-size: 14px; }
@@ -12,7 +12,7 @@
 </head>
 <body>
 
-<h2>GamesPlanet Final Order Converter (Full Final Patched)</h2>
+<h2>GamesPlanet Final Order Converter (Patched Final)</h2>
 
 <textarea id="input" placeholder="Paste order details here"></textarea><br><br>
 
@@ -29,22 +29,7 @@
 
 <script>
 // Product list
-const products = [
-  "gd30 v1","gd30 v2","gd30 v3",
-  "m33 v1","m33 v2","m33 v3",
-  "m22 v1","m22 v2","m22 v3",
-  "gd10 v1","gd10 v2","gd10 v3",
-  "m88","pandora mini","pandora pro",
-  "gamestick lite","gamestick pro","aoko gamestick",
-  "sega 16bit mini u box","sup x7m","black hawk",
-  "fmcb","fmcb + usb","usb",
-  "gd35 v1","gd35 v2","gd35 v3",
-  "gamestick blaster","m44","k8",
-  "g10v3","g10 v3","g11 pro v3","g10",
-  "g11 pro v1","g11pro v1","g11pro v3"
-];
-
-// Variant list
+const products = ["m33","m22","gd30","gd30v2","gd30v3","g11pro","g11pro special edition","fmcb","fmcb + usb top","fmcb + usb optional","m88","m15pro","pandora mini","pandora pro","gamestick lite","gamestick pro","gd35","r35s","r36s","sd card","gamestick gd10","gamebox g10"];
 const variants = ["64gb","128gb","256gb","500gb","1tb","64gb optional","128gb optional","256gb optional","500gb optional","1tb optional","dual","single"];
 
 function selectAll() { let input = document.getElementById("input"); input.focus(); input.select(); }
@@ -92,8 +77,6 @@ function convert() {
       break;
     }
   }
-
-  // If no product detected, extract original product name from '1 item' block
   if (!detectedProduct) {
     let prodMatch = input.match(/1 item[\s\S]*?\n([^\n]+)/i);
     detectedProduct = prodMatch ? prodMatch[1].trim() : "Unknown Product";
@@ -107,25 +90,11 @@ function convert() {
       break;
     }
   }
-
-  // If no variant detected, extract original variant/size from input or fallback
   if (!variant) {
     let variantMatch = input.match(/size[:\s]*([^\n]+)/i);
-    if (variantMatch) {
-      variant = variantMatch[1].trim().toUpperCase();
-    } else {
-      const variantMap = {
-        "m88": "128GB",
-        "pandora pro": "128GB",
-        "pandora mini": "64GB",
-        "gamestick pro": "128GB",
-        "gamestick lite": "64GB"
-      };
-      variant = variantMap[detectedProduct.toLowerCase()] || "";
-    }
+    variant = variantMatch ? variantMatch[1].trim().toUpperCase() : "";
   }
 
-  // Static distance for now
   let distance = "197 km";
   let eta = estimateDeliveryByDistance(197);
 
@@ -156,11 +125,21 @@ function copyAll() {
   navigator.clipboard.writeText(document.getElementById("output").textContent).then(() => alert("Output copied to clipboard!"));
 }
 
+function cleanMobile(mobile) {
+  mobile = mobile.replace(/\s|-/g,"").replace(/^(\+91|91)/, "");
+  if (mobile.length === 10) mobile = "91" + mobile;
+  return mobile;
+}
+
 function sendToCustomer() {
   let o = document.getElementById("output").textContent;
-  let mobile = o.match(/Mobile: ([^\n]+)/)?.[1].replace(/\s|-/g,"") || "";
+  let mobile = cleanMobile(o.match(/Mobile: ([^\n]+)/)?.[1] || "");
   let msg = encodeURIComponent(o);
-  if(mobile) window.open(`https://wa.me/91${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in output.");
+  if(mobile && mobile.length >= 12) {
+    window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank");
+  } else {
+    alert("Customer mobile number not found or invalid in output.");
+  }
 }
 
 function sendToOwn() {
@@ -188,8 +167,12 @@ function sendThanks() {
 🖼️ On request, we can send *parcel pic & tracking details* here on WhatsApp.
 💚 Team GamesPlanet`);
 
-  let mobile = o.match(/Mobile: ([^\n]+)/)?.[1].replace(/\s|-/g,"") || "";
-  if(mobile) window.open(`https://wa.me/91${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in output.");
+  let mobile = cleanMobile(o.match(/Mobile: ([^\n]+)/)?.[1] || "");
+  if(mobile && mobile.length >= 12) {
+    window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank");
+  } else {
+    alert("Customer mobile number not found or invalid in output.");
+  }
 }
 
 function sendAbandonedCart() {
@@ -228,8 +211,12 @@ function sendAbandonedCart() {
 👉 Complete payment soon to confirm your order.
 💚 Team GamesPlanet`);
 
-  let mobile = o.match(/Mobile: ([^\n]+)/)?.[1].replace(/\s|-/g,"") || "";
-  if(mobile) window.open(`https://wa.me/91${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in output.");
+  let mobile = cleanMobile(o.match(/Mobile: ([^\n]+)/)?.[1] || "");
+  if(mobile && mobile.length >= 12) {
+    window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank");
+  } else {
+    alert("Customer mobile number not found or invalid in output.");
+  }
 }
 </script>
 
