@@ -88,9 +88,10 @@ function convert() {
   let detectedProduct = "Unknown Product";
   for (let p of products) { if (input.includes(p)) { detectedProduct = p.toUpperCase(); break; } }
 
-  // Variant detection
-  let variant = "";
-  for (let v of variants) { if (input.includes(v)) { variant = v.toUpperCase(); break; } }
+  // Variant detection updated for size/storage/variant/verient
+let variant = "";
+let variantMatch = input.match(/(?:size|storage|variant|verient)[:\s]*([^\n]+)/i);
+variant = variantMatch ? variantMatch[1].trim().toUpperCase() : "";
 
   let city = "Unknown", state = "Unknown", distance = "N/A", eta = "N/A";
   if (pincode in pincodeLatLng) {
