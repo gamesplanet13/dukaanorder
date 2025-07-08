@@ -12,7 +12,7 @@
 </head>
 <body>
 
-<h2>GamesPlanet Final Order Converter (Stable)</h2>
+<h2>GamesPlanet Final Order Converter (Full Final Patched)</h2>
 
 <textarea id="input" placeholder="Paste order details here"></textarea><br><br>
 
@@ -28,24 +28,27 @@
 <pre id="output"></pre>
 
 <script>
-// Load pincode data
-let pincodeLatLng = {};
-fetch('pincode_data.json')
-  .then(response => response.json())
-  .then(data => { pincodeLatLng = data; })
-  .catch(error => console.log("Error loading pincode data:", error));
-
 // Product list
-const products = ["m33","m22","gd30","gd30v2","gd30v3","g11pro","g11pro special edition","fmcb","fmcb + usb top","fmcb + usb optional","m88","m15pro","pandora mini","pandora pro","gamestick lite","gamestick pro","gd35","r35s","r36s","sd card","gamestick gd10","gamebox g10"];
+const products = [
+  "gd30 v1","gd30 v2","gd30 v3",
+  "m33 v1","m33 v2","m33 v3",
+  "m22 v1","m22 v2","m22 v3",
+  "gd10 v1","gd10 v2","gd10 v3",
+  "m88","pandora mini","pandora pro",
+  "gamestick lite","gamestick pro","aoko gamestick",
+  "sega 16bit mini u box","sup x7m","black hawk",
+  "fmcb","fmcb + usb","usb",
+  "gd35 v1","gd35 v2","gd35 v3",
+  "gamestick blaster","m44","k8",
+  "g10v3","g10 v3","g11 pro v3","g10",
+  "g11 pro v1","g11pro v1","g11pro v3"
+];
+
+// Variant list
+const variants = ["64gb","128gb","256gb","500gb","1tb","64gb optional","128gb optional","256gb optional","500gb optional","1tb optional","dual","single"];
 
 function selectAll() { let input = document.getElementById("input"); input.focus(); input.select(); }
 function clearText() { document.getElementById("input").value = ""; document.getElementById("output").textContent = ""; }
-
-function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)*Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R * c;
-}
 
 function estimateDeliveryByDistance(distance) {
   if (distance <= 30) return "1 day";
@@ -78,34 +81,53 @@ function convert() {
     discount = d ? d[1] : "0";
   }
 
-  let amountPaid = input.match(/Total\s*PAID\s*₹([\d,]+)/i)?.[1].replace(/,/g,"") || "0";
-// Product detection (longest match first)
-products.sort((a,b) => b.length - a.length);
-let detectedProduct = "Unknown Product";
-for (let p of products) {
-  if (input.includes(p)) {
-    detectedProduct = p.toUpperCase();
-    break;
-  }
-}
+  let amountPaid = input.match(/total\s*paid\s*₹([\d,]+)/i)?.[1].replace(/,/g,"") || "0";
 
-// Variant detection after product
-let variant = input.match(/size[:\s]*([\w]+)/i)?.[1] || "";
-if (!variant) {
-  let variantMatches = input.match(/(90xxx|70xxx|fat|64gb|128gb|256gb|500gb|1tb)/ig);
-  if (variantMatches) {
-    variant = variantMatches.map(v => v.toUpperCase()).join(" ");
+  // Product detection
+  products.sort((a,b) => b.length - a.length);
+  let detectedProduct = "";
+  for (let p of products) {
+    if (input.includes(p)) {
+      detectedProduct = p.toUpperCase();
+      break;
+    }
   }
-}
 
-
-  let city = "Unknown", state = "Unknown", distance = "N/A", eta = "N/A";
-  if (pincode in pincodeLatLng) {
-    let dest = pincodeLatLng[pincode];
-    city = dest.city; state = dest.state;
-    distance = haversine(28.8,79.0,dest.lat,dest.lng).toFixed(0);
-    eta = estimateDeliveryByDistance(distance);
+  // If no product detected, extract original product name from '1 item' block
+  if (!detectedProduct) {
+    let prodMatch = input.match(/1 item[\s\S]*?\n([^\n]+)/i);
+    detectedProduct = prodMatch ? prodMatch[1].trim() : "Unknown Product";
   }
+
+  // Variant detection
+  let variant = "";
+  for (let v of variants) {
+    if (input.includes(v)) {
+      variant = v.toUpperCase();
+      break;
+    }
+  }
+
+  // If no variant detected, extract original variant/size from input or fallback
+  if (!variant) {
+    let variantMatch = input.match(/size[:\s]*([^\n]+)/i);
+    if (variantMatch) {
+      variant = variantMatch[1].trim().toUpperCase();
+    } else {
+      const variantMap = {
+        "m88": "128GB",
+        "pandora pro": "128GB",
+        "pandora mini": "64GB",
+        "gamestick pro": "128GB",
+        "gamestick lite": "64GB"
+      };
+      variant = variantMap[detectedProduct.toLowerCase()] || "";
+    }
+  }
+
+  // Static distance for now
+  let distance = "197 km";
+  let eta = estimateDeliveryByDistance(197);
 
   let outputText = 
 `🟢 Prepaid Order on Dukaan
@@ -118,16 +140,13 @@ Email: ${email}
 
 Address: ${address}
 Pincode: ${pincode}
-State: ${state}
-District/City: ${city}
-Post office: ${city}
 
 Product: ${detectedProduct}
 Variant: ${variant}
 Base Price: ₹${basePrice}
 Discount Applied: ₹${discount}
 Amount Paid: ₹${amountPaid}
-Distance: ${distance} km
+Distance: ${distance}
 Estimated Delivery: ${eta}`;
 
   document.getElementById("output").textContent = outputText;
@@ -138,9 +157,10 @@ function copyAll() {
 }
 
 function sendToCustomer() {
-  let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
-  let msg = encodeURIComponent(document.getElementById("output").textContent);
-  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input.");
+  let o = document.getElementById("output").textContent;
+  let mobile = o.match(/Mobile: ([^\n]+)/)?.[1].replace(/\s|-/g,"") || "";
+  let msg = encodeURIComponent(o);
+  if(mobile) window.open(`https://wa.me/91${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in output.");
 }
 
 function sendToOwn() {
@@ -153,23 +173,23 @@ function sendThanks() {
   let name = o.match(/Name: ([^\n]+)/)?.[1] || "Customer";
   let orderId = o.match(/Order ID: ([^\n]+)/)?.[1] || "Not found";
   let product = o.match(/Product: ([^\n]+)/)?.[1].trim() || "";
-  let pincode = o.match(/Pincode: ([^\n]+)/)?.[1] || "";
+  let variant = o.match(/Variant: ([^\n]+)/)?.[1].trim() || "";
   let distance = o.match(/Distance: ([^\n]+)/)?.[1] || "";
   let eta = o.match(/Estimated Delivery: ([^\n]+)/)?.[1] || "";
 
   let msg = encodeURIComponent(
 `🌟 GamesPlanet
 🙏 Hello ${name} ji, thank you for your order ${orderId}.
-📦 Product: ${product} ${variant}
-📍 Pincode: ${pincode} | 📏 Distance: ${distance}
+📦 Product: ${product} (${variant})
+📍 Distance: ${distance}
 ⏳ Estimated Delivery: ${eta}
 🚚 Your order will be shipped soon between 8PM–10PM.
 🔗 Tracking will update on our website after dispatch.
-🖼️ On request, we can send *parcel pic & tracking number* here on WhatsApp.
+🖼️ On request, we can send *parcel pic & tracking details* here on WhatsApp.
 💚 Team GamesPlanet`);
 
-  let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
-  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input.");
+  let mobile = o.match(/Mobile: ([^\n]+)/)?.[1].replace(/\s|-/g,"") || "";
+  if(mobile) window.open(`https://wa.me/91${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in output.");
 }
 
 function sendAbandonedCart() {
@@ -177,40 +197,39 @@ function sendAbandonedCart() {
   let name = o.match(/Name: ([^\n]+)/)?.[1] || "Customer";
   let orderId = o.match(/Order ID: ([^\n]+)/)?.[1] || "Not found";
   let product = o.match(/Product: ([^\n]+)/)?.[1].trim() || "";
+  let variant = o.match(/Variant: ([^\n]+)/)?.[1].trim() || "";
   let basePrice = parseInt(o.match(/Base Price: ₹([\d,]+)/)?.[1].replace(/,/g, '') || "0");
   let discount = parseInt(o.match(/Discount Applied: ₹([\d,]+)/)?.[1].replace(/,/g, '') || "0");
   let prepaidAmount = basePrice - discount;
   let codAdvance = Math.max(500, Math.round(basePrice * 0.10));
   let codRemaining = basePrice - codAdvance;
-
-  let eta = o.match(/Estimated Delivery: ([^\n]+)/)?.[1] || "few days";
-  let codEta = eta.includes('day') ? eta.replace(/\d+/g, d => parseInt(d)+2) : eta;
+  let distance = o.match(/Distance: ([^\n]+)/)?.[1] || "";
+  let eta = o.match(/Estimated Delivery: ([^\n]+)/)?.[1] || "";
 
   let msg = encodeURIComponent(
 `🌟 GamesPlanet
 
 🙏 Hello ${name} ji,
 
-📝 incomplete Order Details:
+📝 Incomplete Order Details:
 – Order ID: ${orderId}
-– Product: ${product} ${variant}
+– Product: ${product} (${variant})
 – Base Price: ₹${basePrice}
 
 💰 Prepaid Offer: ₹${basePrice} – ₹${discount} discount = ₹${prepaidAmount}
-🚚 Estimated Delivery:
-– Prepaid: ${eta}
+🚚 Estimated Delivery: ${eta}
 
 💵 COD: ₹${basePrice} (no discount)
 ➡ COD Advance: ₹${codAdvance}
 ➡ Remaining on Delivery: ₹${codRemaining}
-🚚 Estimated Delivery:
-– COD: ${codEta}
+📍 Distance: ${distance}
+🚚 COD Estimated Delivery: ${eta}
 
 👉 Complete payment soon to confirm your order.
 💚 Team GamesPlanet`);
 
-  let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
-  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input.");
+  let mobile = o.match(/Mobile: ([^\n]+)/)?.[1].replace(/\s|-/g,"") || "";
+  if(mobile) window.open(`https://wa.me/91${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in output.");
 }
 </script>
 
