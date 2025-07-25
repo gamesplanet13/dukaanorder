@@ -2,204 +2,220 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>GamesPlanet Final Order Converter (Full Product + Variant List)</title>
+  <title>Games Planet Final Order Form – Coupon + COD Logic</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    textarea { width: 100%; height: 250px; font-size: 14px; }
-    pre { background: #f0f0f0; padding: 10px; white-space: pre-wrap; font-size: 14px; }
-    button { padding: 10px 15px; font-size: 14px; margin: 4px; cursor: pointer; }
+    body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+    input, select, textarea {
+      width: 90%; max-width: 400px; padding: 10px; margin: 6px auto;
+      font-size: 16px; border: 1px solid #ccc; border-radius: 5px; display: block;
+    }
+    button {
+      padding: 12px 24px; font-size: 18px; margin: 10px;
+      border: none; border-radius: 5px; cursor: pointer;
+    }
+    .pay-btn { background-color: #007bff; color: white; }
+    .order-btn { background-color: #28a745; color: white; }
+    #deliveryEstimate { white-space: pre-wrap; margin-top: 10px; color: #333; }
   </style>
 </head>
 <body>
 
-<h2>GamesPlanet Final Order Converter (Full Product + Variant List)</h2>
+<h2>GamesPlanet Order Form</h2>
 
-<textarea id="input" placeholder="Paste order details here"></textarea><br><br>
+<input id="name" placeholder="Name" />
+<input id="mobile" placeholder="Mobile" />
+<input id="altmobile" placeholder="Alt Mobile (Optional)" />
+<input id="email" placeholder="Email" />
+<input id="address" placeholder="Address" />
+<input id="landmark" placeholder="Landmark" />
+<input id="pincode" placeholder="Pincode" />
+<input id="state" placeholder="State" readonly />
+<input id="city" placeholder="District/City" readonly />
+<select id="postoffice"><option value="">Select Post Office</option></select>
 
-<button onclick="selectAll()">Select All</button>
-<button onclick="clearText()">Clear</button>
-<button onclick="convert()">Convert</button>
-<button onclick="copyAll()">Copy All</button>
-<button onclick="sendToCustomer()">Send to Customer WhatsApp</button>
-<button onclick="sendToOwn()">Send to Own WhatsApp</button>
-<button onclick="sendThanks()">Send Thanks</button>
-<button onclick="sendAbandonedCart()">Send Abandoned Cart WhatsApp</button>
+<hr/>
 
-<pre id="output"></pre>
+<input id="product" placeholder="Product Name" />
+<input id="variant" placeholder="Variant (64GB / 128GB etc)" />
+<input id="coupon" placeholder="Coupon Code (if any)" />
+<select id="paymentmode">
+  <option value="prepaid">Prepaid</option>
+  <option value="cod">Cash on Delivery</option>
+</select>
+<input id="baseprice" type="number" placeholder="Base Price (₹)" />
+<input id="discount" type="number" placeholder="Discount (₹)" readonly />
+<input id="amountpaid" type="number" placeholder="Amount Paid (₹)" />
+<input id="restamount" type="number" placeholder="Rest on Delivery (₹)" readonly />
+
+<div id="deliveryEstimate">Delivery estimate will appear here.</div>
+
+<button class="pay-btn" onclick="payNow()">Pay Now</button>
+<button class="order-btn" onclick="sendOrder()">Order on WhatsApp</button>
 
 <script>
-// Load pincode data
-let pincodeLatLng = {};
+let pincodeLatLng = {}, globalDistance = "N/A", globalETA = "N/A", globalEstimatedDateRange = "N/A";
+
 fetch('pincode_data.json')
-  .then(response => response.json())
-  .then(data => { pincodeLatLng = data; })
-  .catch(error => console.log("Error loading pincode data:", error));
-
-// Full product list
-const products = ["Super Mini U Box MD 16bit Sega ","aoko game stick","Aoko Game Stick","AOKO GAME STICK","aoko game stick v1","Aoko Game Stick V1","AOKO GAME STICK V1","black hawk","Black Hawk","BLACK HAWK","black hawk v1","Black Hawk V1","BLACK HAWK V1","fmcb","FMCB","FMCB","fmcb + usb","FMCB + USB","FMCB + USB","fmcb + usb optional","FMCB + USB Optional","FMCB + USB OPTIONAL","fmcb + usb top","FMCB + USB Top","FMCB + USB TOP","gamestick lite","Gamestick Lite","GAMESTICK LITE","gamestick pro","Gamestick Pro","GAMESTICK PRO","game stick gd10","Game Stick GD10","GAME STICK GD10","gamestick blaster","Gamestick Blaster","GAMESTICK BLASTER","game box g10","Game Box G10","GAME BOX G10","g10","G10","G10","g10v3","G10V3","G10V3","g11 pro","G11 Pro","G11 PRO","g11 pro special edition","G11 Pro Special Edition","G11 PRO SPECIAL EDITION","g11 pro ultimate edition","G11 Pro Ultimate Edition","G11 PRO ULTIMATE EDITION","gd10","GD10","GD10","gd30","GD30","GD30","gd35","GD35","GD35","gs5","GS5","GS5","k8","K8","K8","m15 pro","M15 Pro","M15 PRO","m22","M22","M22","m33","M33","M33","m44","M44","M44","m55","M55","M55","m66","M66","M66","m77","M77","M77","m88","M88","M88","m99","M99","M99","m222","M222","M222","m333","M333","M333","m444","M444","M444","m555","M555","M555","m666","M666","M666","m777","M777","M777","m888","M888","M888","m999","M999","M999","m1000","M1000","M1000","nintendo switch","Nintendo Switch","NINTENDO SWITCH","nintendo switch oled","Nintendo Switch OLED","NINTENDO SWITCH OLED","nintendo wii","Nintendo Wii","NINTENDO WII","nintendo wii u","Nintendo Wii U","NINTENDO WII U","nintendo ds","Nintendo DS","NINTENDO DS","nintendo 3ds","Nintendo 3DS","NINTENDO 3DS","ps1","PS1","PS1","ps2 slim","PS2 Slim","PS2 SLIM","ps3 slim","PS3 Slim","PS3 SLIM","ps3 super slim","PS3 Super Slim","PS3 SUPER SLIM","ps4 fat","PS4 Fat","PS4 FAT","ps4 pro","PS4 Pro","PS4 PRO","ps4 slim","PS4 Slim","PS4 SLIM","xbox 360","XBOX 360","XBOX 360","xbox one","XBOX One","XBOX ONE","xbox series s","XBOX Series S","XBOX SERIES S","xbox series x","XBOX Series X","XBOX SERIES X","pandora mini","Pandora Mini","PANDORA MINI","pandora pro","Pandora Pro","PANDORA PRO","sega mini u box","Sega Mini U Box","SEGA MINI U BOX","sega 16bit mini u box","Sega 16bit Mini U Box","SEGA 16BIT MINI U BOX","sup x7m","Sup X7M","SUP X7M","r35s","R35S","R35S","r36s","R36S","R36S","usb","USB","USB","sd card","SD Card","SD CARD"];
-
-// Full variant list
-const variants = ["64gb","128gb","256gb","500gb","1tb","64gb optional","128gb optional","256gb optional","500gb optional","1tb optional","dual","single","sd card 64gb","sd card 128gb","sd card 256gb","64GB","128GB","256GB","500GB","1TB","64GB Optional","128GB Optional","256GB Optional","500GB Optional","1TB Optional","Dual","Single","SD CARD 64GB","SD CARD 128GB","SD CARD 256GB","64GB OPTIONAL","128GB OPTIONAL","256GB OPTIONAL","500GB OPTIONAL","1TB OPTIONAL","DUAL","SINGLE"];
-
-function selectAll() { let input = document.getElementById("input"); input.focus(); input.select(); }
-function clearText() { document.getElementById("input").value = ""; document.getElementById("output").textContent = ""; }
+  .then(res => res.json())
+  .then(data => { pincodeLatLng = data; });
 
 function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)*Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R * c;
+  const R = 6371, dLat = (lat2 - lat1) * Math.PI / 180, dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function estimateDeliveryByDistance(distance) {
-  if (distance <= 30) return "1 day";
-  else if (distance <= 60) return "1-2 days";
-  else if (distance <= 100) return "2-3 days";
-  else if (distance <= 200) return "3-4 days";
-  else if (distance <= 500) return "4-5 days";
-  else if (distance <= 1000) return "4-6 days";
-  else if (distance <= 1500) return "5–7 days";
-  else if (distance <= 2000) return "6–8 days";
-  else if (distance <= 3000) return "6–10 days";
-  else return "8–12 days (sometimes up to 15 days)";
+  let d = parseInt(distance);
+  if (isNaN(d)) return "N/A";
+  if (d <= 30) return "1 day";
+  if (d <= 60) return "1-2 days";
+  if (d <= 100) return "2-3 days";
+  if (d <= 200) return "3-4 days";
+  if (d <= 500) return "4-5 days";
+  if (d <= 1000) return "4-6 days";
+  if (d <= 1500) return "5–7 days";
+  if (d <= 2000) return "6–8 days";
+  if (d <= 3000) return "6–10 days";
+  return "8–12 days (sometimes up to 15 days)";
 }
 
-function convert() {
-  let input = document.getElementById("input").value.toLowerCase();
+function formatDatePlusDays(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'long' });
+}
 
-  let orderId = input.match(/#\d{5,}/)?.[0] || "Not found";
-  let name = input.match(/name\s*\n([^\n]+)/i)?.[1].trim() || "Customer";
-  let mobile = input.match(/mobile\s*\n([^\n]+)/i)?.[1].trim() || "";
-  let altMobile = input.match(/alternate mobile number\s*\n([^\n]+)/i)?.[1].trim() || "";
-  let email = input.match(/email\s*\n([^\n]+)/i)?.[1].trim() || "";
-  let address = input.match(/shipping address\s*\n([^\n]+)/i)?.[1].trim() || "";
-  let pincode = input.match(/\b\d{6}\b/)?.[0] || "";
-  let basePrice = input.match(/1x\s*₹([\d,]+)/i)?.[1].replace(/,/g,"") || "0";
+function calculateEstimatedRange(etaText) {
+  const numbers = etaText.match(/\d+/g);
+  if (!numbers) return "N/A";
+  const minDay = parseInt(numbers[0]);
+  const maxDay = numbers[1] ? parseInt(numbers[1]) : minDay;
+  return `${formatDatePlusDays(minDay)} – ${formatDatePlusDays(maxDay)}`;
+}
 
-  let discount = "0";
-  if (input.includes("coupon discount")) {
-    let d = input.match(/coupon discount[^\n]*\n-₹(\d+)/i);
-    discount = d ? d[1] : "0";
+document.getElementById("pincode").addEventListener("input", function () {
+  const pincode = this.value.trim();
+  if (pincode.length === 6) {
+    fetch(`https://api.postalpincode.in/pincode/${pincode}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data[0].Status === "Success") {
+          const po = data[0].PostOffice[0];
+          document.getElementById("state").value = po.State;
+          document.getElementById("city").value = po.District;
+          const sel = document.getElementById("postoffice");
+          sel.innerHTML = '<option value="">Select Post Office</option>';
+          data[0].PostOffice.forEach(p => {
+            let opt = document.createElement("option");
+            opt.value = p.Name;
+            opt.text = p.Name;
+            sel.appendChild(opt);
+          });
+
+          if (pincodeLatLng[pincode]) {
+            const rampurLat = 28.8, rampurLng = 79.0;
+            const dest = pincodeLatLng[pincode];
+            const distance = haversine(rampurLat, rampurLng, dest.lat, dest.lng).toFixed(0);
+            const eta = estimateDeliveryByDistance(distance);
+            const range = calculateEstimatedRange(eta);
+
+            globalDistance = `${distance} km`;
+            globalETA = eta;
+            globalEstimatedDateRange = range;
+
+            document.getElementById("deliveryEstimate").innerText =
+              `📍 Pincode found – Distance: ${globalDistance}\n⏳ ETA: ${globalETA}\n📅 Estimated Delivery Date: ${globalEstimatedDateRange}\n📦 Delivery timeline is based on past experience. Sometimes it may delay by 1–3 days.`;
+          } else {
+            globalDistance = "N/A";
+            globalETA = "N/A";
+            globalEstimatedDateRange = "N/A";
+            document.getElementById("deliveryEstimate").innerText = "📍 Pincode found, but no distance data.";
+          }
+        }
+      });
+  }
+});
+
+const products = ["super mini u box md 16bit sega","aoko game stick","aoko game stick v1","black hawk","black hawk v1","fmcb","fmcb + usb","fmcb + usb optional","fmcb + usb top","gamestick lite","gamestick pro","game stick gd10","gamestick blaster","game box g10","g10","g10v3","g11 pro","g11 pro special edition","g11 pro ultimate edition","gd10","gd30","gd35","gs5","k8","m15 pro","m22","m33","m44","m55","m66","m77","m88","m99","m222","m333","m444","m555","m666","m777","m888","m999","m1000","nintendo switch","nintendo switch oled","nintendo wii","nintendo wii u","nintendo ds","nintendo 3ds","ps1","ps2 slim","ps3 slim","ps3 super slim","ps4 fat","ps4 pro","ps4 slim","xbox 360","xbox one","xbox series s","xbox series x","pandora mini","pandora pro","sega mini u box","sega 16bit mini u box","sup x7m","r35s","r36s","usb","sd card"];
+
+document.getElementById("coupon").addEventListener("input", updateDiscount);
+document.getElementById("variant").addEventListener("input", updateDiscount);
+document.getElementById("product").addEventListener("input", updateDiscount);
+document.getElementById("baseprice").addEventListener("input", updateDiscount);
+document.getElementById("paymentmode").addEventListener("change", updateDiscount);
+
+function updateDiscount() {
+  const coupon = document.getElementById("coupon").value.trim().toLowerCase();
+  const mode = document.getElementById("paymentmode").value;
+  const product = document.getElementById("product").value.toLowerCase();
+  const variant = document.getElementById("variant").value.toLowerCase();
+  const base = parseInt(document.getElementById("baseprice").value) || 0;
+
+  const isKnownProduct = products.some(p => product.includes(p));
+  const is64 = variant.includes("64");
+  const is128 = variant.includes("128");
+  const is256plus = variant.includes("256") || variant.includes("500") || variant.includes("1tb");
+
+  let discount = 0;
+  if (coupon === "gpz2025" && mode === "prepaid" && isKnownProduct) {
+    if (is64) discount = 200;
+    else if (is128) discount = 300;
+    else if (is256plus) discount = 500;
   }
 
-  let amountPaid = input.match(/Total\s*PAID\s*₹([\d,]+)/i)?.[1].replace(/,/g,"") || "0";
+  const codCharge = (mode === "cod" && base < 1500) ? 99 : 0;
+  const amountPaid = mode === "cod" ? Math.max(500, Math.ceil(base * 0.1)) : base - discount + codCharge;
+  const rest = mode === "cod" ? base + codCharge - amountPaid : 0;
 
-  // Product detection
-  products.sort((a,b) => b.length - a.length);
-  let detectedProduct = "Unknown Product";
-  for (let p of products) { if (input.includes(p)) { detectedProduct = p.toUpperCase(); break; } }
+  document.getElementById("discount").value = (mode === "prepaid") ? discount : 0;
+  document.getElementById("amountpaid").value = amountPaid;
+  document.getElementById("restamount").value = rest;
+}
 
-  // Variant detection updated for size/storage/variant/verient
-let variant = "";
-let variantMatch = input.match(/(?:size|storage|variant|verient)[:\s]*([^\n]+)/i);
-variant = variantMatch ? variantMatch[1].trim().toUpperCase() : "";
-
-  let city = "Unknown", state = "Unknown", distance = "N/A", eta = "N/A";
-  if (pincode in pincodeLatLng) {
-    let dest = pincodeLatLng[pincode];
-    city = dest.city; state = dest.state;
-    distance = haversine(28.8,79.0,dest.lat,dest.lng).toFixed(0);
-    eta = estimateDeliveryByDistance(distance);
+function payNow() {
+  const amount = document.getElementById("amountpaid").value;
+  if (amount) {
+    window.open(`upi://pay?pa=gamesplanet@upi&pn=GamesPlanet&am=${amount}`, "_blank");
+  } else {
+    alert("Please enter the amount first.");
   }
-
-  let outputText = 
-`🟢 Prepaid Order on Dukaan
-
-Order ID: ${orderId}
-Name: ${name}
-Mobile: ${mobile}
-Alt Mobile: ${altMobile}
-Email: ${email}
-
-Address: ${address}
-Pincode: ${pincode}
-State: ${state}
-District/City: ${city}
-
-Product: ${detectedProduct}
-Variant: ${variant}
-Base Price: ₹${basePrice}
-Discount Applied: ₹${discount}
-Amount Paid: ₹${amountPaid}
-Distance: ${distance} km
-Estimated Delivery: ${eta}`;
-
-  document.getElementById("output").textContent = outputText;
 }
 
-function copyAll() { navigator.clipboard.writeText(document.getElementById("output").textContent).then(() => alert("Output copied to clipboard!")); }
+function sendOrder() {
+  let now = new Date();
+  let orderId = String(now.getDate()).padStart(2, '0') + String(now.getMonth() + 1).padStart(2, '0') + now.getFullYear() +
+                String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
 
-function sendToCustomer() { let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || ""; let msg = encodeURIComponent(document.getElementById("output").textContent); if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input."); }
-function sendToOwn() { let msg = encodeURIComponent(document.getElementById("output").textContent); window.open(`https://wa.me/917983624797?text=${msg}`, "_blank"); }
+  const getValue = id => document.getElementById(id)?.value || "";
 
-function sendThanks() {
-  let o = document.getElementById("output").textContent;
-  let name = o.match(/Name: ([^\n]+)/)?.[1] || "Customer";
-  let orderId = o.match(/Order ID: ([^\n]+)/)?.[1] || "Not found";
-  let product = o.match(/Product: ([^\n]+)/)?.[1].trim() || "";
-  let variant = o.match(/Variant: ([^\n]+)/)?.[1].trim() || "";
-  let pincode = o.match(/Pincode: ([^\n]+)/)?.[1] || "";
-  let distance = o.match(/Distance: ([^\n]+)/)?.[1] || "";
-  let eta = o.match(/Estimated Delivery: ([^\n]+)/)?.[1] || "";
+  const paymentMode = getValue("paymentmode");
+  const msg = (paymentMode === "cod" ? "🔴 *COD Order on WhatsApp*" : "🟢 *Prepaid Order on WhatsApp*") + `
 
-  let msg = encodeURIComponent(
-`🌟 GamesPlanet
-🙏 Hello ${name} ji, thank you for your order ${orderId}.
-📦 Product: ${product} (${variant})
-📍 Pincode: ${pincode} | 📏 Distance: ${distance}
-⏳ Estimated Delivery: ${eta}
-🚚 Your order will be shipped soon between 8PM–10PM.
-🔗 Tracking will update on our website after dispatch.
-🖼️ On request, we can send *parcel pic & tracking number* here on WhatsApp.
-💚 Team GamesPlanet`);
+*Order ID:* ${orderId}
+*Name:* ${getValue("name")}
+*Mobile:* ${getValue("mobile")}
+*Alt Mobile:* ${getValue("altmobile")}
+*Email:* ${getValue("email")}
+*Address:* ${getValue("address")}
+*Landmark:* ${getValue("landmark")}
+*Pincode:* ${getValue("pincode")}
+*State:* ${getValue("state")}
+*District/City:* ${getValue("city")}
+*Post office:* ${getValue("postoffice")}
 
-  let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
-  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input.");
-}
+*Product:* ${getValue("product")}
+*Variant:* ${getValue("variant")}
+*Base Price:* ₹${getValue("baseprice")}
+*Discount Applied:* ₹${getValue("discount")}
+*Amount Paid:* ₹${getValue("amountpaid")}
+${paymentMode === "cod" ? "*Rest on delivery:* ₹" + getValue("restamount") : ""}
 
-function sendAbandonedCart() {
-  let o = document.getElementById("output").textContent;
-  let name = o.match(/Name: ([^\n]+)/)?.[1] || "Customer";
-  let orderId = o.match(/Order ID: ([^\n]+)/)?.[1] || "Not found";
-  let product = o.match(/Product: ([^\n]+)/)?.[1].trim() || "";
-  let variant = o.match(/Variant: ([^\n]+)/)?.[1].trim() || "";
-  let city = o.match(/District\/City: ([^\n]+)/)?.[1] || "";
-  let distance = o.match(/Distance: ([^\n]+)/)?.[1] || "";
-  let basePrice = parseInt(o.match(/Base Price: ₹([\d,]+)/)?.[1].replace(/,/g, '') || "0");
-  let discount = parseInt(o.match(/Discount Applied: ₹([\d,]+)/)?.[1].replace(/,/g, '') || "0");
-  let prepaidAmount = basePrice - discount;
-  let codAdvance = Math.max(500, Math.round(basePrice * 0.10));
-  let codRemaining = basePrice - codAdvance;
+📏 Distance: ${globalDistance}
+⏳ ETA: ${globalETA}
+📅 Estimated Delivery Date: ${globalEstimatedDateRange}`;
 
-  let eta = o.match(/Estimated Delivery: ([^\n]+)/)?.[1] || "few days";
-  let codEta = eta.includes('day') ? eta.replace(/\d+/g, d => parseInt(d)+2) : eta;
-
-  let msg = encodeURIComponent(
-`🌟 GamesPlanet
-
-🙏 Hello ${name} ji,
-
-📝 incomplete Order Details:
-– Order ID: ${orderId}
-– Product: ${product} (${variant})
-– Base Price: ₹${basePrice}
-📍 City: ${city}
-📏 Distance: ${distance}
-
-💰 Prepaid Offer: ₹${basePrice} – ₹${discount} discount = ₹${prepaidAmount}
-🚚 Estimated Delivery:
-– Prepaid: ${eta}
-
-💵 COD: ₹${basePrice} (no discount)
-➡ COD Advance: ₹${codAdvance}
-➡ Remaining on Delivery: ₹${codRemaining}
-🚚 Estimated Delivery:
-– COD: ${codEta}
-
-👉 Complete payment soon to confirm your order.
-💚 Team GamesPlanet`);
-
-  let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
-  if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input.");
+  window.location.href = `https://wa.me/917983624797?text=${encodeURIComponent(msg)}`;
 }
 </script>
 
