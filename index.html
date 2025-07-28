@@ -99,7 +99,6 @@ variant = variantMatch ? variantMatch[1].trim().toUpperCase() : "";
     city = dest.city; state = dest.state;
     distance = haversine(28.8,79.0,dest.lat,dest.lng).toFixed(0);
     eta = estimateDeliveryByDistance(distance);
-    estDate = getEstimatedDate(eta);
   }
 
   let outputText = 
@@ -116,15 +115,13 @@ Pincode: ${pincode}
 State: ${state}
 District/City: ${city}
 
-Product: UNKNOWN
+Product: ${detectedProduct}
 Variant: ${variant}
 Base Price: ₹${basePrice}
 Discount Applied: ₹${discount}
 Amount Paid: ₹${amountPaid}
-📏 Distance: ${distance} km
-⏳ ETA: ${eta}
-📅 Estimated Delivery Date: ${estDate}
-📝 Delivery timeline is based on past experience. Sometimes it may delay by 1–3 days due to unforeseen circumstances.`;
+Distance: ${distance} km
+Estimated Delivery: ${eta}`;
 
   document.getElementById("output").textContent = outputText;
 }
@@ -143,19 +140,16 @@ function sendThanks() {
   let pincode = o.match(/Pincode: ([^\n]+)/)?.[1] || "";
   let distance = o.match(/Distance: ([^\n]+)/)?.[1] || "";
   let eta = o.match(/Estimated Delivery: ([^\n]+)/)?.[1] || "";
-  let estDate = getEstimatedDate(eta);
 
   let msg = encodeURIComponent(
 `🌟 GamesPlanet
 🙏 Hello ${name} ji, thank you for your order ${orderId}.
 📦 Product: ${product} (${variant})
 📍 Pincode: ${pincode} | 📏 Distance: ${distance}
-⏳ ETA: ${eta}
-📅 Estimated Delivery Date: ${estDate}
+⏳ Estimated Delivery: ${eta}
 🚚 Your order will be shipped soon between 8PM–10PM.
 🔗 Tracking will update on our website after dispatch.
 🖼️ On request, we can send *parcel pic & tracking number* here on WhatsApp.
-📝 Delivery timeline is based on past experience. Sometimes it may delay by 1–3 days due to unforeseen circumstances.
 💚 Team GamesPlanet`);
 
   let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
@@ -170,33 +164,21 @@ function sendAbandonedCart() {
   let variant = o.match(/Variant: ([^\n]+)/)?.[1].trim() || "";
   let city = o.match(/District\/City: ([^\n]+)/)?.[1] || "";
   let distance = o.match(/Distance: ([^\n]+)/)?.[1] || "";
-  let eta = o.match(/ETA: ([^\n]+)/)?.[1] || "few days";
-  let prepaidDate = getEstimatedDate(eta);
-  let codDate = getEstimatedDate(eta, 2);
-
   let basePrice = parseInt(o.match(/Base Price: ₹([\d,]+)/)?.[1].replace(/,/g, '') || "0");
   let discount = parseInt(o.match(/Discount Applied: ₹([\d,]+)/)?.[1].replace(/,/g, '') || "0");
   let prepaidAmount = basePrice - discount;
+  let codAdvance = Math.max(500, Math.round(basePrice * 0.10));
+  let codRemaining = basePrice - codAdvance;
 
-  let codAvailable = basePrice >= 1000;
-  let codCharge = (basePrice < 1500) ? 99 : 0;
-  let codTotal = basePrice + codCharge;
-  let codAdvance = Math.max(500, Math.round(codTotal * 0.10));
-  let codRemaining = codTotal - codAdvance;
+  let eta = o.match(/Estimated Delivery: ([^\n]+)/)?.[1] || "few days";
+  let codEta = eta.includes('day') ? eta.replace(/\d+/g, d => parseInt(d)+2) : eta;
 
-  let codInfo = codAvailable
-    ? `💵 COD: ₹${basePrice} + ₹${codCharge} COD Charges = ₹${codTotal}
-➡ COD Advance: ₹${codAdvance}
-➡ Remaining on Delivery: ₹${codRemaining}
-📅 Estimated Delivery Date (COD): ${codDate}`
-    : `🚫 COD not available below ₹1000`;
-  
   let msg = encodeURIComponent(
 `🌟 GamesPlanet
 
 🙏 Hello ${name} ji,
 
-📝 Incomplete Order Details:
+📝 incomplete Order Details:
 – Order ID: ${orderId}
 – Product: ${product} (${variant})
 – Base Price: ₹${basePrice}
@@ -204,15 +186,17 @@ function sendAbandonedCart() {
 📏 Distance: ${distance}
 
 💰 Prepaid Offer: ₹${basePrice} – ₹${discount} discount = ₹${prepaidAmount}
-⏳ ETA: ${eta}
-📅 Estimated Delivery Date (Prepaid): ${prepaidDate}
+🚚 Estimated Delivery:
+– Prepaid: ${eta}
 
-${codInfo}
+💵 COD: ₹${basePrice} (no discount)
+➡ COD Advance: ₹${codAdvance}
+➡ Remaining on Delivery: ₹${codRemaining}
+🚚 Estimated Delivery:
+– COD: ${codEta}
 
-📝 Delivery timeline is based on past experience. Sometimes it may delay by 1–3 days due to unforeseen circumstances.
 👉 Complete payment soon to confirm your order.
 💚 Team GamesPlanet`);
-
 
   let mobile = document.getElementById("input").value.match(/\+91[-\s]?[0-9]{10}/)?.[0].replace(/\s|-/g,"") || "";
   if(mobile) window.open(`https://wa.me/${mobile}?text=${msg}`, "_blank"); else alert("Customer mobile number not found in input.");
