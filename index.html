@@ -61,16 +61,6 @@ function encodeForWA(text){ return encodeURIComponent(text); }
 function waOpen(number, msg){ window.open(`https://wa.me/${number}?text=${encodeForWA(msg)}`, "_blank"); }
 function getOwnNumber(){ return "917983624797"; }
 
-// Prefill URL builder (uses parsed values, not DOM inputs)
-function buildPrefillUrl(d) {
-  // NOTE: the uploaded file name contains a space and (1) — keep it exactly as is.
-  const prefillPath = "./order-prefill%20(1).html";
-  const qs = `?product=${encodeURIComponent(d.detectedProduct || "")}` +
-             `&variant=${encodeURIComponent(d.variant || "")}` +
-             `&base=${encodeURIComponent(d.basePrice || "")}`;
-  return prefillPath + qs;
-}
-
 // Prefer explicit mobile line; fallback to any 10-digit match
 function getCustomerMobile() {
   const raw = document.getElementById("input").value;
@@ -80,16 +70,6 @@ function getCustomerMobile() {
   return any ? any[0].replace(/\D/g,"").replace(/^0+/, "") : "";
 }
 
-function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI/180;
-  const dLon = (lon2 - lon1) * Math.PI/180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  // fix typo: Math not math
-}
-</script>
-<script>
-// Continue script after fixing the small typo above
 function haversine(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI/180;
@@ -140,7 +120,7 @@ function estimatedWindowFromEta(etaStr){
   return (r.min===r.max) ? `${start}` : `${start} to ${end}`;
 }
 
-// ---------- Robust Parser ----------
+// ---------- Robust Parser (handles your sample exactly) ----------
 function parseInput(){
   const raw = document.getElementById("input").value;
   const input = raw.toLowerCase();
@@ -164,7 +144,7 @@ function parseInput(){
   const address = (raw.match(/shipping\s*address\s*[:\n]\s*([\s\S]*?)(?:\n(?:Payments|Payment|Additional|Customer|Mobile|Email|$))/i)?.[1] ||
                   raw.match(/address\s*[:\n]\s*([^\n]+)/i)?.[1] || "").trim().replace(/\s+/g,' ').trim();
 
-  // Landmark: try “Near … / Opp / Behind / Beside …” if explicit Landmark: not present
+  // Landmark: try to pick “Near ...”, “Opp/Behind/Beside ...”, or explicit Landmark:
   let landmark = (raw.match(/landmark\s*[:\n]\s*([^\n]+)/i)?.[1] || "").trim();
   if(!landmark){
     const near = address.match(/\b(?:near|opp(?:osite)?|behind|beside)\b[^,;|]+/i);
@@ -192,11 +172,13 @@ function parseInput(){
                        raw.match(/\bpaid\b\s*[:₹\s]*([\d,]+)/i)?.[1] ||
                        raw.match(/amount\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] || "0").replace(/,/g,"")).trim();
 
-  // Product: prefer “1 item\n<name>”
+  // Product: prefer an explicit product line; else any known product token from big list
   let detectedProduct = "Unknown Product";
+  // Try the “1 item\n<name>” style
   const afterItem = raw.split(/1\s*item/i)[1]?.trim().split('\n')[0]?.trim();
   if(afterItem && afterItem.length>2) detectedProduct = afterItem.toUpperCase();
-  if(detectedProduct==="Unknown PRODUCT" || detectedProduct==="Unknown Product"){
+  // If still unknown, scan list
+  if(detectedProduct==="Unknown Product"){
     const lower = input;
     products.sort((a,b)=>b.length-a.length);
     for (let p of products){ if (lower.includes(p.toLowerCase())) { detectedProduct = p.toUpperCase(); break; } }
@@ -230,10 +212,9 @@ function parseInput(){
   };
 }
 
-// ---------- Message builders (exact style + Prefill link) ----------
+// ---------- Message builders (exact style) ----------
 function buildPrepaidMessage(d){
   const estWindow = d.eta && d.eta!=="N/A" ? estimatedWindowFromEta(d.eta) : "";
-  const prefill = buildPrefillUrl(d);
   return `🟢 Prepaid Order on WhatsApp
 
 Order ID: ${d.orderId}
@@ -255,13 +236,11 @@ Amount Paid: ₹${d.amountPaid}
 
 📏 Distance: ${d.distance} km
 ⏳ Prepaid Order ETA: ${d.eta}
-📅 Estimated Delivery: ${estWindow}
-
-🧾 Prefill link: ${prefill}`;
+📅 Estimated Delivery: ${estWindow}`;
 }
 
-// COD rules (as per your instruction):
-// - advance = max(₹500, 10% of base); ignore any input paid for COD
+// Enforce COD rules you asked:
+// - advance = max(₹500, 10% of base)  (ignore any input amountPaid for COD)
 // - cod charges = 0
 // - discount shows 0
 // - ETA bumped +2–3 days
@@ -269,9 +248,9 @@ function buildCodMessage(d){
   const base = parseInt(d.basePrice||"0",10);
   const advance = Math.max(500, Math.round(base * 0.10));
   const rest = Math.max(base - advance, 0);
+
   const codEta = d.eta && d.eta !== "N/A" ? bumpEtaRangeString(d.eta, 2, 3) : d.eta;
   const estCodWindow = codEta && codEta!=="N/A" ? estimatedWindowFromEta(codEta) : "";
-  const prefill = buildPrefillUrl(d);
 
   return `🔴 COD Order on WhatsApp
 
@@ -295,9 +274,7 @@ Rest on Delivery: ₹${rest}
 
 📏 Distance: ${d.distance} km
 ⏳ COD Order ETA: ${codEta}
-📅 Estimated Delivery: ${estCodWindow}
-
-🧾 Prefill link: ${prefill}`;
+📅 Estimated Delivery: ${estCodWindow}`;
 }
 
 // ---------- Preview both ----------
@@ -309,16 +286,11 @@ function convert(){
 }
 
 // ---------- Senders ----------
-function getWaNumberFormatted(num){
-  // Ensure it starts with 91
-  const n = (num||"").replace(/\D/g,"");
-  return n.startsWith("91") ? n : "91" + n;
-}
 function sendPrepaidToCustomer(){
   const d = parseInput();
   const msg = buildPrepaidMessage(d);
   const mobile = getCustomerMobile();
-  if(mobile) waOpen(getWaNumberFormatted(mobile), msg);
+  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
   else alert("Customer mobile number not found in input.");
 }
 function sendPrepaidToOwn(){
@@ -330,7 +302,7 @@ function sendCodToCustomer(){
   const d = parseInput();
   const msg = buildCodMessage(d);
   const mobile = getCustomerMobile();
-  if(mobile) waOpen(getWaNumberFormatted(mobile), msg);
+  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
   else alert("Customer mobile number not found in input.");
 }
 function sendCodToOwn(){
@@ -353,7 +325,7 @@ function sendThanks() {
 🖼️ On request, we can send *parcel pic & tracking number* here on WhatsApp.
 💚 Team GamesPlanet`;
   const mobile = getCustomerMobile();
-  if(mobile) waOpen(getWaNumberFormatted(mobile), msg);
+  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
   else alert("Customer mobile number not found in input.");
 }
 function sendAbandonedCart() {
@@ -390,7 +362,7 @@ function sendAbandonedCart() {
 👉 Complete payment soon to confirm your order.
 💚 Team GamesPlanet`;
   const mobile = getCustomerMobile();
-  if(mobile) waOpen(getWaNumberFormatted(mobile), msg);
+  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
   else alert("Customer mobile number not found in input.");
 }
 </script>
