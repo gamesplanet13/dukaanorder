@@ -1,185 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>GamesPlanet – Quick Order (Prefilled)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>GamesPlanet Final Order Converter (Full Product + Variant List)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: Arial, Helvetica, sans-serif; padding: 18px; max-width: 1000px; margin: 0 auto; background:#f6f8fb; color:#111;}
-    textarea, input[type=text], select { width:100%; padding:8px; border-radius:6px; border:1px solid #dfe6ee; box-sizing:border-box; font-size:14px; }
-    textarea { min-height:160px; resize:vertical; }
-    .card{ background:#fff; padding:14px; border-radius:10px; box-shadow:0 6px 20px rgba(30,50,80,0.06); }
-    .row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
-    .col{ flex:1; min-width:220px; }
-    button{ padding:8px 12px; border-radius:8px; border:1px solid #d1dbe8; background:#0f172a; color:#fff; cursor:pointer; }
-    .btn-ghost{ background:#fff; color:#111; }
-    .langs{ display:flex; gap:8px; flex-wrap:wrap; }
-    .lang-btn{ padding:6px 10px; border-radius:999px; border:1px solid #cbd5e1; background:#fff; cursor:pointer; }
-    .lang-btn.active{ background:#0f172a; color:#fff; border-color:transparent; }
-    pre{ white-space:pre-wrap; background:#0b1220; color:#fff; padding:12px; border-radius:8px; max-height:420px; overflow:auto; }
-    label{ font-weight:600; display:block; margin-bottom:6px; }
-    .sep{ height:1px; background:#e6eef6; margin:12px 0; border-radius:2px; }
-    .muted{ color:#556072; font-size:13px; }
+    body { font-family: Arial, Helvetica, sans-serif; padding: 20px; max-width: 980px; margin: 0 auto; }
+    textarea { width: 100%; height: 280px; font-size: 14px; }
+    pre { background: #f6f7f9; padding: 12px; white-space: pre-wrap; font-size: 14px; border-radius: 8px; border: 1px solid #e6e6e6; }
+    button { padding: 10px 14px; font-size: 14px; margin: 6px 6px 6px 0; cursor: pointer; border-radius: 8px; border: 1px solid #ddd; background:#fff; }
+    .row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+    .hr { height:1px; background:#e6e6e6; margin:14px 0; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>GamesPlanet — WhatsApp Order Helper (Final)</h2>
-    <p class="muted">Paste raw order text (from your order page). Choose discounts and language, then Preview or Send via WhatsApp. *Mobile number will be used exactly as entered.*</p>
 
-    <label>Raw order input (paste order text here)</label>
-    <textarea id="input" placeholder="Paste order text (name, mobile, address, pincode, price lines)"></textarea>
+<h2>GamesPlanet Final Order Converter (Full Product + Variant List)</h2>
 
-    <div class="row">
-      <div class="col">
-        <label>Detected Pincode / City / State</label>
-        <input id="pincode" placeholder="e.g. 244901 or Rampur, Uttar Pradesh" />
-      </div>
-      <div class="col">
-        <label>Customer Mobile (enter exactly as you want; don't add +91/91 automatically)</label>
-        <input id="mobile" placeholder="e.g. 9876543210 or +919876543210 or 919876543210" />
-      </div>
-      <div class="col">
-        <label>Order ID (optional)</label>
-        <input id="orderId" placeholder="#123456 or 123456" />
-      </div>
-    </div>
+<textarea id="input" placeholder="Paste order details here"></textarea>
 
-    <div class="sep"></div>
+<div class="row">
+  <button onclick="selectAll()">Select All</button>
+  <button onclick="clearText()">Clear</button>
+  <button onclick="convert()">Convert (Preview Both)</button>
+  <button onclick="copyAll()">Copy All</button>
+</div>
 
-    <div class="row">
-      <div class="col">
-        <label><input type="checkbox" id="enablePrepaid"> Enable Prepaid Discount</label>
-        <div style="display:flex;gap:8px;margin-top:6px">
-          <input id="prepaidDiscount" placeholder="Prepaid discount (numeric) e.g. 200" />
-          <select id="prepaidType"><option value="flat">₹ Flat</option><option value="pct">% Percent</option></select>
-        </div>
-      </div>
+<div class="row">
+  <button onclick="sendPrepaidToCustomer()">Send Prepaid to Customer</button>
+  <button onclick="sendPrepaidToOwn()">Send Prepaid to Own</button>
+  <button onclick="sendCodToCustomer()">Send COD to Customer</button>
+  <button onclick="sendCodToOwn()">Send COD to Own</button>
+</div>
 
-      <div class="col">
-        <label><input type="checkbox" id="enableCod"> Enable COD Discount</label>
-        <div style="display:flex;gap:8px;margin-top:6px">
-          <input id="codDiscount" placeholder="COD discount (numeric) e.g. 0" />
-          <select id="codType"><option value="flat">₹ Flat</option><option value="pct">% Percent</option></select>
-        </div>
-      </div>
+<div class="row">
+  <button onclick="sendThanks()">Send Thanks</button>
+  <button onclick="sendAbandonedCart()">Send Abandoned Cart</button>
+</div>
 
-      <div class="col">
-        <label>Default Language (primary shown)</label>
-        <select id="defaultLang">
-          <option value="en">English</option>
-          <option value="hi">Hindi</option>
-          <option value="bn">Bengali</option>
-          <option value="mr">Marathi</option>
-          <option value="te">Telugu</option>
-          <option value="ta">Tamil</option>
-          <option value="gu">Gujarati</option>
-          <option value="kn">Kannada</option>
-          <option value="ml">Malayalam</option>
-          <option value="pa">Punjabi</option>
-          <option value="or">Odia</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="sep"></div>
-
-    <label>Language Buttons (auto-suggested based on pincode/state)</label>
-    <div id="langButtons" class="langs"></div>
-
-    <div class="sep"></div>
-
-    <div class="row" style="margin-bottom:12px">
-      <!-- Primary preview/send -->
-      <button onclick="previewBoth()">Preview (Thanks & Abandoned)</button>
-      <button class="btn-ghost" onclick="copyPreview()">Copy Preview</button>
-      <button class="btn-ghost" onclick="sendWhatsApp('thanks')">Send Thanks via WA</button>
-      <button class="btn-ghost" onclick="sendWhatsApp('abandoned')">Send Abandoned via WA</button>
-      <!-- Original / extra actions -->
-      <button class="btn-ghost" onclick="selectAll()">Select All</button>
-      <button class="btn-ghost" onclick="clearText()">Clear</button>
-      <button class="btn-ghost" onclick="convert()">Convert</button>
-      <button class="btn-ghost" onclick="copyAll()">Copy All</button>
-      <!-- Prepaid / COD send -->
-      <button class="btn-ghost" onclick="sendPrepaidToCustomer()">Send Prepaid → Customer</button>
-      <button class="btn-ghost" onclick="sendPrepaidToOwn()">Send Prepaid → Own</button>
-      <button class="btn-ghost" onclick="sendCodToCustomer()">Send COD → Customer</button>
-      <button class="btn-ghost" onclick="sendCodToOwn()">Send COD → Own</button>
-      <!-- alternate full sends -->
-      <button class="btn-ghost" onclick="sendThanks()">Send Thanks (alt)</button>
-      <button class="btn-ghost" onclick="sendAbandonedCart()">Send Abandoned (alt)</button>
-    </div>
-
-    <label>Preview</label>
-    <pre id="preview">(Messages will appear here)</pre>
-  </div>
+<div class="hr"></div>
+<pre id="output"></pre>
 
 <script>
-/* ===========================
-   Full final script (merged)
-   - original parser (product lists)
-   - message templates
-   - discount controls
-   - buttons & functions (all restored)
-   ============================ */
+// ---------- Load pincode data ----------
+let pincodeLatLng = {};
+fetch('pincode_data.json')
+  .then(r => r.json())
+  .then(d => { pincodeLatLng = d; })
+  .catch(e => console.log("Error loading pincode data:", e));
 
-// ---------- product & variant lists (original) ----------
+// ---------- Product & Variant lists ----------
 const products = ["Super Mini U Box MD 16bit Sega ","aoko game stick","Aoko Game Stick","AOKO GAME STICK","aoko game stick v1","Aoko Game Stick V1","AOKO GAME STICK V1","black hawk","Black Hawk","BLACK HAWK","black hawk v1","Black Hawk V1","BLACK HAWK V1","fmcb","FMCB","FMCB","fmcb + usb","FMCB + USB","FMCB + USB","fmcb + usb optional","FMCB + USB Optional","FMCB + USB OPTIONAL","fmcb + usb top","FMCB + USB Top","FMCB + USB TOP","gamestick lite","Gamestick Lite","GAMESTICK LITE","gamestick pro","Gamestick Pro","GAMESTICK PRO","game stick gd10","Game Stick GD10","GAME STICK GD10","gamestick blaster","Gamestick Blaster","GAMESTICK BLASTER","game box g10","Game Box G10","GAME BOX G10","g10","G10","G10","g10v3","G10V3","G10V3","g11 pro","G11 Pro","G11 PRO","g11 pro special edition","G11 Pro Special Edition","G11 PRO SPECIAL EDITION","g11 pro ultimate edition","G11 Pro Ultimate Edition","G11 PRO ULTIMATE EDITION","gd10","GD10","GD10","gd30","GD30","GD30","gd35","GD35","GD35","gs5","GS5","GS5","k8","K8","K8","m15 pro","M15 Pro","M15 PRO","m22","M22","M22","m33","M33","M33","m44","M44","M44","m55","M55","M55","m66","M66","M66","m77","M77","M77","m88","M88","M88","m99","M99","M99","m222","M222","M222","m333","M333","M333","m444","M444","M444","m555","M555","M555","m666","M666","M666","m777","M777","M777","m888","M888","M888","m999","M999","M999","m1000","M1000","M1000","nintendo switch","Nintendo Switch","NINTENDO SWITCH","nintendo switch oled","Nintendo Switch OLED","NINTENDO SWITCH OLED","nintendo wii","Nintendo Wii","NINTENDO WII","nintendo wii u","Nintendo Wii U","NINTENDO WII U","nintendo ds","Nintendo DS","NINTENDO DS","nintendo 3ds","Nintendo 3DS","NINTENDO 3DS","ps1","PS1","PS1","ps2 slim","PS2 Slim","PS2 SLIM","ps3 slim","PS3 Slim","PS3 SLIM","ps3 super slim","PS3 Super Slim","PS3 SUPER SLIM","ps4 fat","PS4 Fat","PS4 FAT","ps4 pro","PS4 Pro","PS4 PRO","ps4 slim","PS4 Slim","PS4 SLIM","xbox 360","XBOX 360","XBOX 360","xbox one","XBOX One","XBOX ONE","xbox series s","XBOX Series S","XBOX SERIES S","xbox series x","XBOX Series X","XBOX SERIES X","pandora mini","Pandora Mini","PANDORA MINI","pandora pro","Pandora Pro","PANDORA PRO","sega mini u box","Sega Mini U Box","SEGA MINI U BOX","sega 16bit mini u box","Sega 16bit Mini U Box","SEGA 16BIT MINI U BOX","sup x7m","Sup X7M","SUP X7M","r35s","R35S","R35S","r36s","R36S","R36S","usb","USB","USB","sd card","SD Card","SD CARD"];
 const variants = ["64gb","128gb","256gb","500gb","1tb","64gb optional","128gb optional","256gb optional","500gb optional","1tb optional","dual","single","sd card 64gb","sd card 128gb","sd card 256gb","64GB","128GB","256GB","500GB","1TB","64GB Optional","128GB Optional","256GB Optional","500GB Optional","1TB Optional","Dual","Single","SD CARD 64GB","SD CARD 128GB","SD CARD 256GB","64GB OPTIONAL","128GB OPTIONAL","256GB OPTIONAL","500GB OPTIONAL","1TB OPTIONAL","DUAL","SINGLE"];
 
-// ---------- language map ----------
-const stateToLang = {
-  'uttar pradesh': ['hi','en','pa'],
-  'west bengal': ['bn','en','hi'],
-  'maharashtra': ['mr','en','hi'],
-  'telangana': ['te','en','hi'],
-  'andhra pradesh': ['te','en','hi'],
-  'tamil nadu': ['ta','en','hi'],
-  'gujarat': ['gu','en','hi'],
-  'karnataka': ['kn','en','hi'],
-  'kerala': ['ml','en','hi'],
-  'punjab': ['pa','en','hi'],
-  'odisha': ['or','en','hi']
-};
-const langsMeta = {en:'English',hi:'Hindi',bn:'Bengali',mr:'Marathi',te:'Telugu',ta:'Tamil',gu:'Gujarati',kn:'Kannada',ml:'Malayalam',pa:'Punjabi',or:'Odia'};
+// ---------- Helpers ----------
+function selectAll(){ const t = document.getElementById("input"); t.focus(); t.select(); }
+function clearText(){ document.getElementById("input").value=""; document.getElementById("output").textContent=""; }
+function copyAll(){ navigator.clipboard.writeText(document.getElementById("output").textContent).then(()=>alert("Output copied!")); }
+function encodeForWA(text){ return encodeURIComponent(text); }
+function waOpen(number, msg){ window.open(`https://wa.me/${number}?text=${encodeForWA(msg)}`, "_blank"); }
+function getOwnNumber(){ return "917983624797"; }
 
-// ---------- templates (English + Hindi full; others placeholders) ----------
-const templates = {
-  en: {
-    thanks: `🌟 *GamesPlanet*\n\n────────────────────────────\n🙏 Hello *{{name}}*, thank you for your order *{{orderId}}*\n────────────────────────────\n\n📦 *Product:* {{product}}\n📍 *Pincode:* {{pincode}}\n📏 *Distance:* {{distance}} km\n\n⏳ *Estimated Delivery:* {{eta}}\n🚚 *Shipping:* Your order will be shipped between 8PM–10PM.\n🔗 *Tracking:* Will update on our website after dispatch.\n\n🖼️ On request, we can send *parcel pic & tracking number* here on WhatsApp.\n\n💚 *Team GamesPlanet*`,
-    abandoned: `🌟 *GamesPlanet*\n\n────────────────────────────\n🙏 Hello *{{name}}*, your order is incomplete!\n────────────────────────────\n\n📝 *Order Details:*\n– Order ID: {{orderId}}\n– Product: {{product}}\n– Base Price: ₹{{basePrice}}\n📍 City: {{city}}\n📏 Distance: {{distance}} km\n\n────────────────────────────\n💰 *Prepaid Offer*\nPrice: ₹{{basePrice}} – {{prepaidDiscountDisplay}} = ₹{{prepaidFinal}}\n⏳ Delivery: {{eta}}\n\n💵 *Cash on Delivery (COD)*\nPrice: ₹{{basePrice}} (no discount)\n➡ Advance: ₹{{codAdvance}}\n➡ Remaining on Delivery: ₹{{codRemaining}}\n⏳ Delivery: {{codEta}}\n────────────────────────────\n\n👉 Complete payment soon to confirm your order.\n\n💚 *Team GamesPlanet*`
-  },
-  hi: {
-    thanks: `🌟 *GamesPlanet*\n\n────────────────────────────\n🙏 नमस्ते *{{name}}*, आपका ऑर्डर *{{orderId}}* के लिए धन्यवाद\n────────────────────────────\n\n📦 *प्रोडक्ट:* {{product}}\n📍 *पिनकोड:* {{pincode}}\n📏 *दूरी:* {{distance}} किमी\n\n⏳ *अनुमानित डिलीवरी:* {{eta}}\n🚚 *शिपिंग:* आपका आर्डर शाम 8PM–10PM के बीच भेजा जाएगा।\n🔗 *ट्रैकिंग:* डिस्पैच के बाद हमारी वेबसाइट पर अपडेट होगी।\n\n🖼️ अनुरोध पर हम *पार्सल की तस्वीर और ट्रैकिंग नंबर* व्हाट्सएप पर भेज सकते हैं।\n\n💚 *टीम GamesPlanet*`,
-    abandoned: `🌟 *GamesPlanet*\n\n────────────────────────────\n🙏 नमस्ते *{{name}}*, आपका ऑर्डर अधूरा है!\n────────────────────────────\n\n📝 *ऑर्डर विवरण:*\n– ऑर्डर ID: {{orderId}}\n– प्रोडक्ट: {{product}}\n– बेस प्राइस: ₹{{basePrice}}\n📍 सिटी: {{city}}\n📏 दूरी: {{distance}} किमी\n\n────────────────────────────\n💰 *प्रीपेड ऑफर*\nकीमत: ₹{{basePrice}} – {{prepaidDiscountDisplay}} = ₹{{prepaidFinal}}\n⏳ डिलीवरी: {{eta}}\n\n💵 *कैश ऑन डिलीवरी (COD)*\nकीमत: ₹{{basePrice}} (कोई छूट नहीं)\n➡ एडवांस: ₹{{codAdvance}}\n➡ डिलीवरी पर बाकी: ₹{{codRemaining}}\n⏳ डिलीवरी: {{codEta}}\n────────────────────────────\n\n👉 अपना पेमेंट जल्द पूरा करें ताकि ऑर्डर कन्फर्म हो सके।\n\n💚 *टीम GamesPlanet*`
-  },
-  // placeholders
-  bn: {thanks: `🌟 *GamesPlanet*\n\n... (Bengali)`, abandoned: `🌟 *GamesPlanet*\n\n... (Bengali)`},
-  mr: {thanks: `🌟 *GamesPlanet*\n\n... (Marathi)`, abandoned: `🌟 *GamesPlanet*\n\n... (Marathi)`},
-  te: {thanks: `🌟 *GamesPlanet*\n\n... (Telugu)`, abandoned: `🌟 *GamesPlanet*\n\n... (Telugu)`},
-  ta: {thanks: `🌟 *GamesPlanet*\n\n... (Tamil)`, abandoned: `🌟 *GamesPlanet*\n\n... (Tamil)`},
-  gu: {thanks: `🌟 *GamesPlanet*\n\n... (Gujarati)`, abandoned: `🌟 *GamesPlanet*\n\n... (Gujarati)`},
-  kn: {thanks: `🌟 *GamesPlanet*\n\n... (Kannada)`, abandoned: `🌟 *GamesPlanet*\n\n... (Kannada)`},
-  ml: {thanks: `🌟 *GamesPlanet*\n\n... (Malayalam)`, abandoned: `🌟 *GamesPlanet*\n\n... (Malayalam)`},
-  pa: {thanks: `🌟 *GamesPlanet*\n\n... (Punjabi)`, abandoned: `🌟 *GamesPlanet*\n\n... (Punjabi)`},
-  or: {thanks: `🌟 *GamesPlanet*\n\n... (Odia)`, abandoned: `🌟 *GamesPlanet*\n\n... (Odia)`},
-};
-
-// ---------- helpers ----------
-function formatNumber(n){ return (''+n).replace(/\B(?=(\d{3})+(?!\d))/g,","); }
-function pickLanguagesFromInput(text){
-  const low = (text||'').toLowerCase();
-  for(const st in stateToLang) if(low.includes(st)) return stateToLang[st];
-  if(/\b\d{6}\b/.test(text)) return ['hi','en'];
-  return ['en','hi'];
+// Prefill URL builder (uses parsed values, not DOM inputs)
+function buildPrefillUrl(d) {
+  // NOTE: the uploaded file name contains a space and (1) — keep it exactly as is.
+  const prefillPath = "./order-prefill%20(1).html";
+  const qs = `?product=${encodeURIComponent(d.detectedProduct || "")}` +
+             `&variant=${encodeURIComponent(d.variant || "")}` +
+             `&base=${encodeURIComponent(d.basePrice || "")}`;
+  return prefillPath + qs;
 }
 
-// minimal pincode lat/lng (replace with full file if needed)
-const pincodeLatLng = { '244901': {lat:28.82, lng:79.02, city:'Rampur', state:'Uttar Pradesh'} };
+// Prefer explicit mobile line; fallback to any 10-digit match
+function getCustomerMobile() {
+  const raw = document.getElementById("input").value;
+  const line = raw.match(/(?:mobile|phone)\s*[:\n]\s*([+]?91[-\s]?\d{10}|\d{10})/i)?.[1];
+  if (line) return line.replace(/\D/g,"").replace(/^0+/, "");
+  const any = raw.match(/(?:\+?91[-\s]?)?\d{10}/);
+  return any ? any[0].replace(/\D/g,"").replace(/^0+/, "") : "";
+}
+
 function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371; const dLat=(lat2-lat1)*Math.PI/180; const dLon=(lon2-lon1)*Math.PI/180;
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI/180;
+  const dLon = (lon2 - lon1) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  // fix typo: Math not math
+}
+</script>
+<script>
+// Continue script after fixing the small typo above
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI/180;
+  const dLon = (lon2 - lon1) * Math.PI/180;
   const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R*c;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R*c;
 }
 function estimateDeliveryByDistance(distance) {
   const d = Number(distance);
@@ -189,282 +106,310 @@ function estimateDeliveryByDistance(distance) {
   else if (d <= 200) return "3-4 days";
   else if (d <= 500) return "4-5 days";
   else if (d <= 1000) return "4-6 days";
-  else return "6–10 days";
+  else if (d <= 1500) return "5–7 days";
+  else if (d <= 2000) return "6–8 days";
+  else if (d <= 3000) return "6–10 days";
+  else return "8–12 days (sometimes up to 15 days)";
 }
 
-// ---------- parsing (robust) ----------
+// ETA helpers
+function parseEtaRange(etaStr){
+  if(!etaStr || etaStr==="N/A") return null;
+  const nums = (etaStr.match(/\d+/g)||[]).map(n=>parseInt(n,10));
+  if(nums.length === 1) return {min: nums[0], max: nums[0]};
+  if(nums.length >= 2) return {min: nums[0], max: nums[1]};
+  return null;
+}
+function bumpEtaRangeString(etaStr, addMin=2, addMax=3){
+  const r = parseEtaRange(etaStr);
+  if(!r) return etaStr;
+  const min = r.min + addMin;
+  const max = r.max + addMax;
+  return (min===max) ? `${min} days` : `${min}-${max} days`;
+}
+function todayStrOffset(days){
+  const d = new Date();
+  d.setDate(d.getDate()+days);
+  return d.toLocaleDateString('en-IN', {day:'2-digit', month:'short'});
+}
+function estimatedWindowFromEta(etaStr){
+  const r = parseEtaRange(etaStr);
+  if(!r) return etaStr || "";
+  const start = todayStrOffset(r.min);
+  const end   = todayStrOffset(r.max);
+  return (r.min===r.max) ? `${start}` : `${start} to ${end}`;
+}
+
+// ---------- Robust Parser ----------
+// ---------- Robust Parser (handles your sample exactly) ----------
 function parseInput(){
-  const raw = document.getElementById("input").value || "";
-  const lower = raw.toLowerCase();
+  const raw = document.getElementById("input").value;
+  const input = raw.toLowerCase();
 
-  // order id
-  let orderId = (raw.match(/#\s*\d{5,}/)?.[0] || "") .replace(/\s+/g,'');
-  if(!orderId){ const firstLine = (raw.split('\n').map(s=>s.trim()).find(s=>s) || ""); const m = firstLine.match(/\d{5,}/); if(m) orderId = "#" + m[0]; }
-  if(!orderId) orderId = document.getElementById('orderId').value || "Not found";
+  // Order ID: "#12345" OR first number-like token at the top line
+  let orderId = (raw.match(/#\s*\d{5,}/)?.[0] || "").replace(/\s+/g,'');
+  if(!orderId){
+    const firstLine = (raw.split('\n').map(s=>s.trim()).find(s=>s) || "");
+    const m = firstLine.match(/\d{6,}/);
+    if(m) orderId = "#" + m[0];
+  }
+  if(!orderId) orderId = "Not found";
 
-  // name
+  // Name / Mobile / Alt Mobile / Email
   const name = (raw.match(/name\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/\n([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\nMobile/i)?.[1] || "Customer").trim();
+  const mobile = (raw.match(/mobile\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/\+?91[-\s]?\d{10}/)?.[0] || "").trim();
+  const altMobile = (raw.match(/alternate\s*mobile(?:\s*number)?\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/Alt(?:ernate)?\s*Mobile\s*\n?([^\n]+)/i)?.[1] || "").trim();
+  const email = (raw.match(/email\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "").trim();
 
-  // mobile (use explicit field first; else find in raw) — do NOT force +91/91
-  const explicit = (document.getElementById('mobile').value || "").trim();
-  let mobile = explicit || (raw.match(/(?:\+?91[-\s]?)?[6-9]\d{9}/)?.[0] || "");
-  mobile = mobile.replace(/^\+/, "").replace(/\s+/g,"");
-
-  const email = (raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "").trim();
-
-  // address & pincode
-  const address = (raw.match(/shipping\s*address\s*[:\n]\s*([\s\S]*?)(?:\n(?:payments|payment|additional|customer|mobile|email|$))/i)?.[1] ||
+  // Address (entire line after “Shipping address”)
+  const address = (raw.match(/shipping\s*address\s*[:\n]\s*([\s\S]*?)(?:\n(?:Payments|Payment|Additional|Customer|Mobile|Email|$))/i)?.[1] ||
                   raw.match(/address\s*[:\n]\s*([^\n]+)/i)?.[1] || "").trim().replace(/\s+/g,' ').trim();
 
-  const pincode = (raw.match(/\b\d{6}\b/)?.[0] || document.getElementById('pincode').value || "").trim();
-
-  // product detection
-  let detectedProduct = "Unknown Product";
-  const afterItem = raw.split(/1\s*item/i)[1]?.trim().split('\n')[0]?.trim();
-  if(afterItem && afterItem.length>2) detectedProduct = afterItem;
-  else{
-    const lowerRaw = raw.toLowerCase(); products.sort((a,b)=>b.length-a.length);
-    for (let p of products) if (lowerRaw.includes(p.toLowerCase())) { detectedProduct = p; break; }
+  // Landmark: try “Near … / Opp / Behind / Beside …” if explicit Landmark: not present
+  // Landmark: try to pick “Near ...”, “Opp/Behind/Beside ...”, or explicit Landmark:
+  let landmark = (raw.match(/landmark\s*[:\n]\s*([^\n]+)/i)?.[1] || "").trim();
+  if(!landmark){
+    const near = address.match(/\b(?:near|opp(?:osite)?|behind|beside)\b[^,;|]+/i);
+    if(near) landmark = near[0].trim();
   }
 
-  // variant detection
+  // Post office: if present explicitly
+  const postOffice = (raw.match(/post\s*office\s*[:\n]\s*([^\n]+)/i)?.[1] || "").trim();
+
+  // Pincode (6 digits)
+  const pincode = (raw.match(/\b\d{6}\b/)?.[0] || "").trim();
+
+  // Price block: handle “1x ₹1,899”, Subtotal, Coupon discount (DISC5) -₹5, Total PAID ₹1,894
+  const basePrice = ((raw.match(/1x\s*₹?\s*([\d,]+)/i)?.[1] || raw.match(/base\s*price\s*[:₹\s]*([\d,]+)/i)?.[1] || "0").replace(/,/g,"")).trim();
+
+  let discount = "0";
+  const couponLine = raw.match(/coupon\s*discount.*?(-₹\s*[\d,]+)/i);
+  if (couponLine) discount = couponLine[1].replace(/[^\d]/g,'');
+  else {
+    const d2 = raw.match(/discount\s*applied\s*[:₹\s-]*([\d,]+)/i);
+    if (d2) discount = d2[1].replace(/,/g,'');
+  }
+
+  const amountPaid = ((raw.match(/total\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] ||
+                       raw.match(/\bpaid\b\s*[:₹\s]*([\d,]+)/i)?.[1] ||
+                       raw.match(/amount\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] || "0").replace(/,/g,"")).trim();
+
+  // Product: prefer “1 item\n<name>”
+  // Product: prefer an explicit product line; else any known product token from big list
+  let detectedProduct = "Unknown Product";
+  // Try the “1 item\n<name>” style
+  const afterItem = raw.split(/1\s*item/i)[1]?.trim().split('\n')[0]?.trim();
+  if(afterItem && afterItem.length>2) detectedProduct = afterItem.toUpperCase();
+  if(detectedProduct==="Unknown PRODUCT" || detectedProduct==="Unknown Product"){
+  // If still unknown, scan list
+  if(detectedProduct==="Unknown Product"){
+    const lower = input;
+    products.sort((a,b)=>b.length-a.length);
+    for (let p of products){ if (lower.includes(p.toLowerCase())) { detectedProduct = p.toUpperCase(); break; } }
+  }
+
+  // Variant: from product line or generic keys
   let variant = "";
   const vKey = raw.match(/(?:size|storage|variant|verient)\s*[:\s]*([^\n]+)/i);
-  if(vKey) variant = vKey[1].trim();
+  if(vKey) variant = vKey[1].trim().toUpperCase();
   else {
     const vInName = detectedProduct.match(/\b(64GB|128GB|256GB|500GB|1TB)\b/i);
-    if(vInName) variant = vInName[1];
+    if(vInName) variant = vInName[1].toUpperCase();
   }
 
-  // price parsing
-  const basePrice = ((raw.match(/1x\s*₹?\s*([\d,]+)/i)?.[1] || raw.match(/base\s*price\s*[:₹\s]*([\d,]+)/i)?.[1] || "0").replace(/,/g,"")).trim();
-  const discount = (raw.match(/coupon\s*discount.*?(-₹\s*[\d,]+)/i)?.[1] || raw.match(/discount\s*applied\s*[:₹\s-]*([\d,]+)/i)?.[1] || "0").replace(/[^\d]/g,'');
-  const amountPaid = ((raw.match(/total\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] || raw.match(/amount\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] || "0").replace(/,/g,"")).trim();
-
-  // geo: city/state/distance/eta
-  let city="Unknown", state="Unknown", distance="N/A", eta="N/A";
+  // Geo / ETA
+  let city = "Unknown", state = "Unknown", distance = "N/A", eta = "N/A";
   if (pincode && pincodeLatLng[pincode]) {
     const dest = pincodeLatLng[pincode];
-    city = dest.city || "Unknown"; state = dest.state || "Unknown";
-    distance = Math.round(haversine(28.8,79.0,dest.lat,dest.lng));
+    city = dest.city || "Unknown";
+    state = dest.state || "Unknown";
+    distance = haversine(28.8,79.0,dest.lat,dest.lng).toFixed(0); // Rampur approx
     eta = estimateDeliveryByDistance(distance);
   }
 
-  return { orderId, name, mobile, email, address, pincode, basePrice, discount, amountPaid, detectedProduct, variant, city, state, distance, eta };
+  return {
+    orderId, name, mobile, altMobile, email,
+    address, landmark, postOffice, pincode,
+    basePrice, discount, amountPaid,
+    detectedProduct, variant,
+    city, state, distance, eta
+  };
 }
 
-// ---------- discount calc ----------
-function computeDiscountedFor(baseStr, enabled, valStr, type){
-  const base = Number((baseStr||"0").toString().replace(/,/g,''))||0;
-  const val = Number(valStr||0)||0;
-  if(!enabled) return {display:'₹0', final: base};
-  if(type==='flat'){ return { display: '₹'+formatNumber(val), final: Math.max(0, base - val) }; }
-  const disc = Math.round(base * (val/100)); return { display: val + '%', final: Math.max(0, base - disc) };
-}
-
-// ---------- message builders ----------
-function buildPrepaidMessageFull(d, prepaid){
-  const estWindow = d.eta || "";
+// ---------- Message builders (exact style + Prefill link) ----------
+// ---------- Message builders (exact style) ----------
+function buildPrepaidMessage(d){
+  const estWindow = d.eta && d.eta!=="N/A" ? estimatedWindowFromEta(d.eta) : "";
+  const prefill = buildPrefillUrl(d);
   return `🟢 Prepaid Order on WhatsApp
 
 Order ID: ${d.orderId}
 Name: ${d.name}
 Mobile: ${d.mobile}
+Alt Mobile: ${d.altMobile}
 Email: ${d.email}
 Address: ${d.address}
+Landmark: ${d.landmark}
 Pincode: ${d.pincode}
 State: ${d.state}
 District/City: ${d.city}
+Post office: ${d.postOffice}
 Product: ${d.detectedProduct}
 Variant: ${d.variant}
-Base Price: ₹${formatNumber(d.basePrice)}
-Discount Applied: ${prepaid.display}
-Amount Payable (Prepaid): ₹${formatNumber(prepaid.final)}
+Base Price: ₹${d.basePrice}
+Discount Applied: ₹${d.discount}
+Amount Paid: ₹${d.amountPaid}
 
 📏 Distance: ${d.distance} km
 ⏳ Prepaid Order ETA: ${d.eta}
+📅 Estimated Delivery: ${estWindow}
+
+🧾 Prefill link: ${prefill}`;
 📅 Estimated Delivery: ${estWindow}`;
 }
 
-function buildCodMessageFull(d, cod){
-  const base = Number((d.basePrice||"0").toString().replace(/,/g,''))||0;
+// COD rules (as per your instruction):
+// - advance = max(₹500, 10% of base); ignore any input paid for COD
+// Enforce COD rules you asked:
+// - advance = max(₹500, 10% of base)  (ignore any input amountPaid for COD)
+// - cod charges = 0
+// - discount shows 0
+// - ETA bumped +2–3 days
+function buildCodMessage(d){
+  const base = parseInt(d.basePrice||"0",10);
   const advance = Math.max(500, Math.round(base * 0.10));
-  const rest = Math.max(0, base - advance);
-  const codEta = d.eta ? (function(e){ const nums=(e.match(/\d+/g)||[]).map(Number); if(nums.length===0) return e; const min=nums[0]+2; const max=(nums[1]||nums[0])+3; return (min===max)? min+' days': min+'-'+max+' days'; })(d.eta) : d.eta;
+  const rest = Math.max(base - advance, 0);
+
+  const codEta = d.eta && d.eta !== "N/A" ? bumpEtaRangeString(d.eta, 2, 3) : d.eta;
+  const estCodWindow = codEta && codEta!=="N/A" ? estimatedWindowFromEta(codEta) : "";
+  const prefill = buildPrefillUrl(d);
 
   return `🔴 COD Order on WhatsApp
 
 Order ID: ${d.orderId}
 Name: ${d.name}
 Mobile: ${d.mobile}
+Alt Mobile: ${d.altMobile}
 Email: ${d.email}
 Address: ${d.address}
+Landmark: ${d.landmark}
 Pincode: ${d.pincode}
 State: ${d.state}
 District/City: ${d.city}
+Post office: ${d.postOffice}
 Product: ${d.detectedProduct}
 Variant: ${d.variant}
-Base Price: ₹${formatNumber(base)}
-Discount Applied: ${cod.display}
-Amount Paid (Advance): ₹${formatNumber(advance)}
-Rest on Delivery: ₹${formatNumber(rest)}
+Base Price: ₹${base}
+Discount Applied: ₹0
+Amount Paid: ₹${advance}
+Rest on Delivery: ₹${rest}
 
 📏 Distance: ${d.distance} km
 ⏳ COD Order ETA: ${codEta}
-📅 Estimated Delivery: ${codEta}`;
+📅 Estimated Delivery: ${estCodWindow}
+
+🧾 Prefill link: ${prefill}`;
+📅 Estimated Delivery: ${estCodWindow}`;
 }
 
-// ---------- template rendering ----------
-function replacePlaceholders(template, data){
-  return template.replace(/{{\s*(\w+)\s*}}/g, (_,k)=> data[k] || '');
-}
-
-function buildMessage(type, langCode){
+// ---------- Preview both ----------
+function convert(){
   const d = parseInput();
-  const prepaidEnabled = document.getElementById('enablePrepaid').checked;
-  const prepaidVal = document.getElementById('prepaidDiscount').value || '0';
-  const prepaidType = document.getElementById('prepaidType').value;
-  const codEnabled = document.getElementById('enableCod').checked;
-  const codVal = document.getElementById('codDiscount').value || '0';
-  const codType = document.getElementById('codType').value;
+  const prepaid = buildPrepaidMessage(d);
+  const cod = buildCodMessage(d);
+  document.getElementById("output").textContent = prepaid + "\n\n" + cod;
+}
 
-  const prepaid = computeDiscountedFor(d.basePrice, prepaidEnabled, prepaidVal, prepaidType);
-  const cod = computeDiscountedFor(d.basePrice, codEnabled, codVal, codType);
+// ---------- Senders ----------
+function getWaNumberFormatted(num){
+  // Ensure it starts with 91
+  const n = (num||"").replace(/\D/g,"");
+  return n.startsWith("91") ? n : "91" + n;
+}
+function sendPrepaidToCustomer(){
+  const d = parseInput();
+  const msg = buildPrepaidMessage(d);
+  const mobile = getCustomerMobile();
+  if(mobile) waOpen(getWaNumberFormatted(mobile), msg);
+  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
+  else alert("Customer mobile number not found in input.");
+}
+function sendPrepaidToOwn(){
+  const d = parseInput();
+  const msg = buildPrepaidMessage(d);
+  waOpen(getOwnNumber(), msg);
+}
+function sendCodToCustomer(){
+  const d = parseInput();
+  const msg = buildCodMessage(d);
+  const mobile = getCustomerMobile();
+  if(mobile) waOpen(getWaNumberFormatted(mobile), msg);
+  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
+  else alert("Customer mobile number not found in input.");
+}
+function sendCodToOwn(){
+  const d = parseInput();
+  const msg = buildCodMessage(d);
+  waOpen(getOwnNumber(), msg);
+}
 
-  const base = Number((d.basePrice||"0").toString().replace(/,/g,''))||0;
+// ---------- Optional extras ----------
+function sendThanks() {
+  const d = parseInput();
+  const msg =
+`🌟 GamesPlanet
+🙏 Hello ${d.name} ji, thank you for your order ${d.orderId}.
+📦 Product: ${d.detectedProduct} (${d.variant})
+📍 Pincode: ${d.pincode} | 📏 Distance: ${d.distance} km
+⏳ Estimated Delivery: ${d.eta}
+🚚 Your order will be shipped soon between 8PM–10PM.
+🔗 Tracking will update on our website after dispatch.
+🖼️ On request, we can send *parcel pic & tracking number* here on WhatsApp.
+💚 Team GamesPlanet`;
+  const mobile = getCustomerMobile();
+  if(mobile) waOpen(getWaNumberFormatted(mobile), msg);
+  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
+  else alert("Customer mobile number not found in input.");
+}
+function sendAbandonedCart() {
+  const d = parseInput();
+  const base = parseInt(d.basePrice || "0",10);
+  const discount = parseInt(d.discount || "0",10);
+  const prepaidAmount = Math.max(base - discount, 0);
   const codAdvance = Math.max(500, Math.round(base * 0.10));
-  const codRemaining = Math.max(0, base - codAdvance);
+  const codRemaining = Math.max(base - codAdvance, 0);
+  const codEta = d.eta && d.eta !== "N/A" ? bumpEtaRangeString(d.eta, 2, 3) : d.eta;
 
-  const tplSet = templates[langCode] || templates['en'];
-  const tpl = tplSet[type] || templates['en'][type];
+  const msg =
+`🌟 GamesPlanet
 
-  const data = {
-    name: d.name,
-    orderId: d.orderId,
-    product: d.detectedProduct,
-    basePrice: formatNumber(d.basePrice),
-    city: d.city,
-    pincode: d.pincode,
-    distance: d.distance,
-    eta: d.eta,
-    prepaidDiscountDisplay: prepaid.display,
-    prepaidFinal: formatNumber(prepaid.final),
-    codAdvance: formatNumber(codAdvance),
-    codRemaining: formatNumber(codRemaining),
-    codEta: d.eta
-  };
+🙏 Hello ${d.name} ji,
 
-  return replacePlaceholders(tpl, data);
+📝 Incomplete Order Details:
+– Order ID: ${d.orderId}
+– Product: ${d.detectedProduct} (${d.variant})
+– Base Price: ₹${base}
+📍 City: ${d.city}
+📏 Distance: ${d.distance} km
+
+💰 Prepaid Offer: ₹${base} – ₹${discount} discount = ₹${prepaidAmount}
+🚚 Estimated Delivery:
+– Prepaid: ${d.eta}
+
+💵 COD: ₹${base} (no discount)
+➡ COD Advance: ₹${codAdvance}
+➡ Remaining on Delivery: ₹${codRemaining}
+🚚 Estimated Delivery:
+– COD: ${codEta}
+
+👉 Complete payment soon to confirm your order.
+💚 Team GamesPlanet`;
+  const mobile = getCustomerMobile();
+  if(mobile) waOpen(getWaNumberFormatted(mobile), msg);
+  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
+  else alert("Customer mobile number not found in input.");
 }
-
-// ---------- UI: language buttons ----------
-function renderLangButtons(){
-  const raw = document.getElementById('input').value || '';
-  const suggested = pickLanguagesFromInput(raw);
-  const container = document.getElementById('langButtons');
-  container.innerHTML = '';
-  suggested.forEach(code=>{
-    const btn = document.createElement('button'); btn.className='lang-btn active'; btn.innerText = langsMeta[code] || code; btn.dataset.lang=code;
-    btn.onclick = ()=>{ document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); };
-    container.appendChild(btn);
-  });
-  Object.keys(langsMeta).forEach(code=>{
-    if(!suggested.includes(code)){
-      const btn = document.createElement('button'); btn.className='lang-btn'; btn.innerText = langsMeta[code]; btn.dataset.lang=code;
-      btn.onclick = ()=>{ btn.classList.toggle('active'); };
-      container.appendChild(btn);
-    }
-  });
-}
-document.getElementById('input').addEventListener('input', renderLangButtons);
-document.getElementById('pincode').addEventListener('input', renderLangButtons);
-renderLangButtons();
-
-// ---------- preview & send ----------
-function previewBoth(){
-  const active = Array.from(document.querySelectorAll('.lang-btn.active')).map(b=>b.dataset.lang);
-  const primary = document.getElementById('defaultLang').value || active[0] || 'en';
-  let out = `-- Primary: ${langsMeta[primary] || primary} --\n\n`;
-  out += `--- THANKS (${langsMeta[primary]}) ---\n` + buildMessage('thanks', primary) + '\n\n';
-  out += `--- ABANDONED (${langsMeta[primary]}) ---\n` + buildMessage('abandoned', primary) + '\n\n';
-
-  const others = active.filter(l=>l!==primary).slice(0,4);
-  others.forEach(l=>{
-    out += `--- THANKS (${langsMeta[l]}) ---\n` + buildMessage('thanks', l) + '\n\n';
-    out += `--- ABANDONED (${langsMeta[l]}) ---\n` + buildMessage('abandoned', l) + '\n\n';
-  });
-
-  document.getElementById('preview').innerText = out;
-}
-function copyPreview(){ navigator.clipboard.writeText(document.getElementById('preview').innerText).then(()=>alert('Preview copied')); }
-function copyAll(){ copyPreview(); }
-function convert(){ previewBoth(); }
-
-// ---------- WhatsApp helper (do NOT add +91 automatically) ----------
-function waOpen(number, msg){
-  if(!number) { alert('Mobile number missing. Enter in Mobile field or include in raw input.'); return; }
-  const cleaned = number.replace(/\s+/g,'');
-  const url = `https://wa.me/${encodeURIComponent(cleaned)}?text=${encodeURIComponent(msg)}`;
-  window.open(url, '_blank');
-}
-
-// get mobile (explicit field first; else from raw)
-function getCustomerMobile(){
-  const explicit = (document.getElementById('mobile').value || '').trim();
-  if(explicit) return explicit.replace(/\s+/g,'');
-  const raw = document.getElementById('input').value || '';
-  const any = raw.match(/(?:\+?91[-\s]?)?[6-9]\d{9}/);
-  return any ? any[0].replace(/^\+/, '').replace(/\s+/g,'') : '';
-}
-
-// ---------- Prepaid/COD small order messages and functions ----------
-function buildPrepaidOrderMessage(){
-  const d = parseInput();
-  const enabled = document.getElementById('enablePrepaid').checked;
-  const val = document.getElementById('prepaidDiscount').value || '0';
-  const type = document.getElementById('prepaidType').value;
-  const disc = computeDiscountedFor(d.basePrice, enabled, val, type);
-  return `🟢 Prepaid Order\nOrder ID: ${d.orderId}\nName: ${d.name}\nMobile: ${d.mobile || getCustomerMobile()}\nProduct: ${d.detectedProduct}\nBase Price: ₹${formatNumber(d.basePrice)}\nDiscount: ${disc.display}\nPayable: ₹${formatNumber(disc.final)}`;
-}
-
-function buildCodOrderMessage(){
-  const d = parseInput();
-  const enabled = document.getElementById('enableCod').checked;
-  const val = document.getElementById('codDiscount').value || '0';
-  const type = document.getElementById('codType').value;
-  const disc = computeDiscountedFor(d.basePrice, enabled, val, type);
-  const base = Number((d.basePrice||"0").toString().replace(/,/g,''))||0;
-  const advance = Math.max(500, Math.round(base * 0.10));
-  const rest = Math.max(0, base - advance);
-  return `🔴 COD Order\nOrder ID: ${d.orderId}\nName: ${d.name}\nMobile: ${d.mobile || getCustomerMobile()}\nProduct: ${d.detectedProduct}\nBase Price: ₹${formatNumber(base)}\nDiscount: ${disc.display}\nCOD Advance: ₹${formatNumber(advance)}\nRemaining on Delivery: ₹${formatNumber(rest)}`;
-}
-
-function sendPrepaidToCustomer(){ waOpen(getCustomerMobile(), buildPrepaidOrderMessage()); }
-function sendPrepaidToOwn(){ waOpen(getOwnNumber(), buildPrepaidOrderMessage()); }
-function sendCodToCustomer(){ waOpen(getCustomerMobile(), buildCodOrderMessage()); }
-function sendCodToOwn(){ waOpen(getOwnNumber(), buildCodOrderMessage()); }
-
-function sendThanks(){
-  const primary = document.getElementById('defaultLang').value || 'en';
-  const msg = buildMessage('thanks', primary);
-  waOpen(getCustomerMobile(), msg);
-}
-function sendAbandonedCart(){
-  const primary = document.getElementById('defaultLang').value || 'en';
-  const msg = buildMessage('abandoned', primary);
-  waOpen(getCustomerMobile(), msg);
-}
-
-// alternate send buttons (same behavior)
-function sendWhatsApp(which){
-  const primary = document.getElementById('defaultLang').value || 'en';
-  const msg = buildMessage(which, primary);
-  waOpen(getCustomerMobile(), msg);
-}
-
-// own number for testing / records
-function getOwnNumber(){ return '7983624797'; }
-
 </script>
+
 </body>
 </html>
