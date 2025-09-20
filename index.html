@@ -1,75 +1,164 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>GamesPlanet Final Order Converter (Full Product + Variant List)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
+  <title>GamesPlanet — Order Converter</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial, Helvetica, sans-serif; padding: 20px; max-width: 980px; margin: 0 auto; }
-    textarea { width: 100%; height: 280px; font-size: 14px; }
-    pre { background: #f6f7f9; padding: 12px; white-space: pre-wrap; font-size: 14px; border-radius: 8px; border: 1px solid #e6e6e6; }
-    button { padding: 10px 14px; font-size: 14px; margin: 6px 6px 6px 0; cursor: pointer; border-radius: 8px; border: 1px solid #ddd; background:#fff; }
-    .row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
-    .hr { height:1px; background:#e6e6e6; margin:14px 0; }
+    :root{
+      --bg: #0f1724;
+      --card: linear-gradient(180deg,#0b1220 0%, #071027 100%);
+      --muted: #98a0b3;
+      --accent: #7c3aed;
+      --accent-2: #06b6d4;
+      --glass: rgba(255,255,255,0.04);
+      --glass-2: rgba(255,255,255,0.02);
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius: 14px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#07102a 0%, #051025 100%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+    .wrap{max-width:1100px;margin:28px auto;padding:22px;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 8px 30px rgba(2,6,23,0.7);border:1px solid rgba(255,255,255,0.03);}
+    header{display:flex;gap:18px;align-items:center;margin-bottom:18px}
+    .logo{
+      display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:12px;background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 6px 18px rgba(124,58,237,0.18);
+    }
+    .logo .mark{width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;font-weight:800;color:white}
+    .logo h1{color:#fff;font-size:18px;margin:0}
+    .subtitle{color:var(--muted);font-size:13px;margin-top:4px}
+    .grid{display:grid;grid-template-columns:1fr 420px;gap:18px}
+    @media (max-width:980px){ .grid{grid-template-columns:1fr;} }
+
+    /* Left - editor */
+    .card{background:var(--card);padding:16px;border-radius:var(--radius);border:1px solid var(--glass);color:#e6eef8}
+    textarea#input{width:100%;height:360px;background:transparent;border:1px dashed rgba(255,255,255,0.06);padding:12px;border-radius:10px;color:#dbeafe;font-size:13px;resize:vertical}
+    .controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .btn{padding:10px 12px;border-radius:10px;border:0;cursor:pointer;font-weight:600;letter-spacing:.2px}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+    .btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white;box-shadow:0 8px 22px rgba(7,16,34,0.6)}
+    .btn-success{background:linear-gradient(90deg,#16a34a,#10b981);color:#fff}
+    .btn-danger{background:linear-gradient(90deg,#ef4444,#f97316);color:#fff}
+    .small{font-size:13px;padding:8px 10px}
+
+    /* Right - preview */
+    .preview {position:sticky; top:24px;}
+    .preview .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .preview pre{background:linear-gradient(180deg, rgba(0,0,0,0.35), rgba(255,255,255,0.02));padding:12px;border-radius:10px;color:#e6eef8;overflow:auto;max-height:520px;border:1px solid var(--glass-2);font-size:13px;white-space:pre-wrap}
+    .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .chip{background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:999px;font-weight:600;color:var(--muted);font-size:13px;border:1px solid rgba(255,255,255,0.02)}
+
+    footer.small-note{margin-top:14px;color:var(--muted);font-size:13px;text-align:center}
+    .hint{color:var(--muted);font-size:13px;margin-top:10px}
+
+    /* nice focus */
+    textarea:focus{outline:none;box-shadow:0 8px 30px rgba(99,102,241,0.08);border-color:rgba(124,58,237,0.35)}
+    .btn:active{transform:translateY(1px)}
   </style>
 </head>
 <body>
+  <div class="wrap">
+    <header>
+      <div class="logo">
+        <div class="mark">GP</div>
+        <div>
+          <h1>GamesPlanet — Order Converter</h1>
+          <div class="subtitle">Fast WA messages • Clean numbers • COD rules • Bilingual abandoned-cart</div>
+        </div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+        <div class="chip">COD ≥ ₹1,399</div>
+        <div class="chip">No COD ≤ ₹999</div>
+        <div class="chip">Numbers cleaned: +91 removed</div>
+      </div>
+    </header>
 
-<h2>GamesPlanet Final Order Converter (Full Product + Variant List)</h2>
+    <div class="grid">
+      <!-- LEFT -->
+      <div>
+        <div class="card">
+          <label style="display:block;margin-bottom:8px;font-weight:700;color:#cfe8ff">Paste order text here</label>
+          <textarea id="input" placeholder="Paste full order text or raw message here..."></textarea>
 
-<textarea id="input" placeholder="Paste order details here"></textarea>
+          <div class="controls" style="margin-top:12px">
+            <button class="btn btn-ghost" onclick="selectAll()">Select All</button>
+            <button class="btn btn-ghost" onclick="clearText()">Clear</button>
+            <button class="btn btn-primary" onclick="convert()">Preview Messages</button>
+            <button class="btn btn-ghost" onclick="copyAll()">Copy Output</button>
+          </div>
 
-<div class="row">
-  <button onclick="selectAll()">Select All</button>
-  <button onclick="clearText()">Clear</button>
-  <button onclick="convert()">Convert (Preview Both)</button>
-  <button onclick="copyAll()">Copy All</button>
-</div>
+          <div class="controls" style="margin-top:12px">
+            <button class="btn small btn-success" onclick="sendPrepaidToCustomer()">Send Prepaid (To Customer)</button>
+            <button class="btn small btn-ghost" onclick="sendPrepaidToOwn()">Send Prepaid (To Self)</button>
+            <button class="btn small btn-danger" onclick="sendCodToCustomer()">Send COD (To Customer)</button>
+            <button class="btn small btn-ghost" onclick="sendCodToOwn()">Send COD (To Self)</button>
+          </div>
 
-<div class="row">
-  <button onclick="sendPrepaidToCustomer()">Send Prepaid to Customer</button>
-  <button onclick="sendPrepaidToOwn()">Send Prepaid to Own</button>
-  <button onclick="sendCodToCustomer()">Send COD to Customer</button>
-  <button onclick="sendCodToOwn()">Send COD to Own</button>
-</div>
+          <div class="controls" style="margin-top:10px">
+            <button class="btn btn-ghost small" onclick="sendThanks()">Send Thanks</button>
+            <button class="btn btn-primary small" onclick="sendAbandonedCart()">Send Abandoned Cart</button>
+          </div>
 
-<div class="row">
-  <button onclick="sendThanks()">Send Thanks</button>
-  <button onclick="sendAbandonedCart()">Send Abandoned Cart</button>
-</div>
+          <div class="hint">Tip: Paste the raw message from your orders app — parser will extract name, numbers (cleaned), address, pincode, product and price.</div>
+        </div>
 
-<div class="hr"></div>
-<pre id="output"></pre>
+        <div style="height:14px"></div>
+
+        <div class="card">
+          <label style="display:block;margin-bottom:8px;font-weight:700;color:#cfe8ff">Output (preview)</label>
+          <pre id="output">Press "Preview Messages" to see generated messages here.</pre>
+          <div class="meta">
+            <div class="chip">Bilingual abandoned-cart</div>
+            <div class="chip">Mobile cleaned</div>
+            <div class="chip">ETA by distance</div>
+          </div>
+          <div class="hint" style="margin-top:10px">Want further color tweaks or a printable PDF version? Bol dijiye — I’ll add it.</div>
+        </div>
+      </div>
+
+      <!-- RIGHT PREVIEW -->
+      <aside class="preview">
+        <div class="card">
+          <div class="panel-header">
+            <div>
+              <strong style="font-size:15px;color:#fff">Live Preview</strong>
+              <div style="color:var(--muted);font-size:13px">Preview of messages to send via WhatsApp</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:13px;color:var(--muted)">Theme: <strong style="color:#fff">Dark • Purple</strong></div>
+            </div>
+          </div>
+
+          <pre id="livePreview">No preview yet — paste order text and click "Preview Messages".</pre>
+
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-primary small" onclick="convert()">Refresh</button>
+            <button class="btn btn-ghost small" onclick="copyAll()">Copy All</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="small-note">Made for GamesPlanet — stylish & functional. Replace your old HTML with this file.</footer>
+  </div>
 
 <script>
-// ---------- Load pincode data ----------
+/* ------------------ Data load (pincode data optional) ------------------ */
 let pincodeLatLng = {};
-fetch('pincode_data.json')
-  .then(r => r.json())
-  .then(d => { pincodeLatLng = d; })
-  .catch(e => console.log("Error loading pincode data:", e));
+fetch('pincode_data.json').then(r=>r.ok? r.json():{} ).then(d=>{ pincodeLatLng = d || {}; }).catch(e=>{ pincodeLatLng = {}; });
 
-// ---------- Product & Variant lists ----------
-const products = ["Super Mini U Box MD 16bit Sega ","aoko game stick","Aoko Game Stick","AOKO GAME STICK","aoko game stick v1","Aoko Game Stick V1","AOKO GAME STICK V1","black hawk","Black Hawk","BLACK HAWK","black hawk v1","Black Hawk V1","BLACK HAWK V1","fmcb","FMCB","FMCB","fmcb + usb","FMCB + USB","FMCB + USB","fmcb + usb optional","FMCB + USB Optional","FMCB + USB OPTIONAL","fmcb + usb top","FMCB + USB Top","FMCB + USB TOP","gamestick lite","Gamestick Lite","GAMESTICK LITE","gamestick pro","Gamestick Pro","GAMESTICK PRO","game stick gd10","Game Stick GD10","GAME STICK GD10","gamestick blaster","Gamestick Blaster","GAMESTICK BLASTER","game box g10","Game Box G10","GAME BOX G10","g10","G10","G10","g10v3","G10V3","G10V3","g11 pro","G11 Pro","G11 PRO","g11 pro special edition","G11 Pro Special Edition","G11 PRO SPECIAL EDITION","g11 pro ultimate edition","G11 Pro Ultimate Edition","G11 PRO ULTIMATE EDITION","gd10","GD10","GD10","gd30","GD30","GD30","gd35","GD35","GD35","gs5","GS5","GS5","k8","K8","K8","m15 pro","M15 Pro","M15 PRO","m22","M22","M22","m33","M33","M33","m44","M44","M44","m55","M55","M55","m66","M66","M66","m77","M77","M77","m88","M88","M88","m99","M99","M99","m222","M222","M222","m333","M333","M333","m444","M444","M444","m555","M555","M555","m666","M666","M666","m777","M777","M777","m888","M888","M888","m999","M999","M999","m1000","M1000","M1000","nintendo switch","Nintendo Switch","NINTENDO SWITCH","nintendo switch oled","Nintendo Switch OLED","NINTENDO SWITCH OLED","nintendo wii","Nintendo Wii","NINTENDO WII","nintendo wii u","Nintendo Wii U","NINTENDO WII U","nintendo ds","Nintendo DS","NINTENDO DS","nintendo 3ds","Nintendo 3DS","NINTENDO 3DS","ps1","PS1","PS1","ps2 slim","PS2 Slim","PS2 SLIM","ps3 slim","PS3 Slim","PS3 SLIM","ps3 super slim","PS3 Super Slim","PS3 SUPER SLIM","ps4 fat","PS4 Fat","PS4 FAT","ps4 pro","PS4 Pro","PS4 PRO","ps4 slim","PS4 Slim","PS4 SLIM","xbox 360","XBOX 360","XBOX 360","xbox one","XBOX One","XBOX ONE","xbox series s","XBOX Series S","XBOX SERIES S","xbox series x","XBOX Series X","XBOX SERIES X","pandora mini","Pandora Mini","PANDORA MINI","pandora pro","Pandora Pro","PANDORA PRO","sega mini u box","Sega Mini U Box","SEGA MINI U BOX","sega 16bit mini u box","Sega 16bit Mini U Box","SEGA 16BIT MINI U BOX","sup x7m","Sup X7M","SUP X7M","r35s","R35S","R35S","r36s","R36S","R36S","usb","USB","USB","sd card","SD Card","SD CARD"];
-const variants = ["64gb","128gb","256gb","500gb","1tb","64gb optional","128gb optional","256gb optional","500gb optional","1tb optional","dual","single","sd card 64gb","sd card 128gb","sd card 256gb","64GB","128GB","256GB","500GB","1TB","64GB Optional","128GB Optional","256GB Optional","500GB Optional","1TB Optional","Dual","Single","SD CARD 64GB","SD CARD 128GB","SD CARD 256GB","64GB OPTIONAL","128GB OPTIONAL","256GB OPTIONAL","500GB OPTIONAL","1TB OPTIONAL","DUAL","SINGLE"];
-
-// ---------- Helpers ----------
-function selectAll(){ const t = document.getElementById("input"); t.focus(); t.select(); }
-function clearText(){ document.getElementById("input").value=""; document.getElementById("output").textContent=""; }
-function copyAll(){ navigator.clipboard.writeText(document.getElementById("output").textContent).then(()=>alert("Output copied!")); }
+/* ------------------ Utility helpers ------------------ */
+function selectAll(){ const t=document.getElementById('input'); t.focus(); t.select(); }
+function clearText(){ document.getElementById('input').value=''; document.getElementById('output').textContent=''; document.getElementById('livePreview').textContent='No preview yet — paste order text and click "Preview Messages".'; }
+function copyAll(){ const text = document.getElementById('output').textContent; navigator.clipboard.writeText(text).then(()=>alert('Output copied to clipboard')); }
 function encodeForWA(text){ return encodeURIComponent(text); }
-function waOpen(number, msg){ window.open(`https://wa.me/${number}?text=${encodeForWA(msg)}`, "_blank"); }
+function waOpen(number,msg){ window.open(`https://wa.me/${number}?text=${encodeForWA(msg)}`,'_blank'); }
 function getOwnNumber(){ return "917983624797"; }
 
-// Prefer explicit mobile line; fallback to any 10-digit match
-function getCustomerMobile() {
-  const raw = document.getElementById("input").value;
-  const line = raw.match(/(?:mobile|phone)\s*[:\n]\s*([+]?91[-\s]?\d{10}|\d{10})/i)?.[1];
-  if (line) return line.replace(/\D/g,"").replace(/^0+/, "");
-  const any = raw.match(/(?:\+?91[-\s]?)?\d{10}/);
-  return any ? any[0].replace(/\D/g,"").replace(/^0+/, "") : "";
-}
-
+/* ------------------ Geo helpers ------------------ */
 function haversine(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI/180;
@@ -91,8 +180,6 @@ function estimateDeliveryByDistance(distance) {
   else if (d <= 3000) return "6–10 days";
   else return "8–12 days (sometimes up to 15 days)";
 }
-
-// ETA helpers
 function parseEtaRange(etaStr){
   if(!etaStr || etaStr==="N/A") return null;
   const nums = (etaStr.match(/\d+/g)||[]).map(n=>parseInt(n,10));
@@ -108,8 +195,7 @@ function bumpEtaRangeString(etaStr, addMin=2, addMax=3){
   return (min===max) ? `${min} days` : `${min}-${max} days`;
 }
 function todayStrOffset(days){
-  const d = new Date();
-  d.setDate(d.getDate()+days);
+  const d = new Date(); d.setDate(d.getDate()+days);
   return d.toLocaleDateString('en-IN', {day:'2-digit', month:'short'});
 }
 function estimatedWindowFromEta(etaStr){
@@ -120,45 +206,66 @@ function estimatedWindowFromEta(etaStr){
   return (r.min===r.max) ? `${start}` : `${start} to ${end}`;
 }
 
-// ---------- Robust Parser (handles your sample exactly) ----------
+/* ------------------ Product / variant lists (kept from your original) ------------------ */
+const products = ["Super Mini U Box MD 16bit Sega ","aoko game stick","Aoko Game Stick","AOKO GAME STICK","aoko game stick v1","Aoko Game Stick V1","AOKO GAME STICK V1","black hawk","Black Hawk","BLACK HAWK","black hawk v1","Black Hawk V1","BLACK HAWK V1","fmcb","FMCB","FMCB","fmcb + usb","FMCB + USB","FMCB + USB","fmcb + usb optional","FMCB + USB Optional","FMCB + USB OPTIONAL","fmcb + usb top","FMCB + USB Top","FMCB + USB TOP","gamestick lite","Gamestick Lite","GAMESTICK LITE","gamestick pro","Gamestick Pro","GAMESTICK PRO","game stick gd10","Game Stick GD10","GAME STICK GD10","gamestick blaster","Gamestick Blaster","GAMESTICK BLASTER","game box g10","Game Box G10","GAME BOX G10","g10","G10","G10","g10v3","G10V3","G10V3","g11 pro","G11 Pro","G11 PRO","g11 pro special edition","G11 Pro Special Edition","G11 PRO SPECIAL EDITION","g11 pro ultimate edition","G11 Pro Ultimate Edition","G11 PRO ULTIMATE EDITION","gd10","GD10","GD10","gd30","GD30","GD30","gd35","GD35","GD35","gs5","GS5","GS5","k8","K8","K8","m15 pro","M15 Pro","M15 PRO","m22","M22","M22","m33","M33","M33","m44","M44","M44","m55","M55","M55","m66","M66","M66","m77","M77","M77","m88","M88","M88","m99","M99","M99","m222","M222","M222","m333","M333","M333","m444","M444","M444","m555","M555","M555","m666","M666","M666","m777","M777","M777","m888","M888","M888","m999","M999","M999","m1000","M1000","M1000","nintendo switch","Nintendo Switch","NINTENDO SWITCH","nintendo switch oled","Nintendo Switch OLED","NINTENDO SWITCH OLED","nintendo wii","Nintendo Wii","NINTENDO WII","nintendo wii u","Nintendo Wii U","NINTENDO WII U","nintendo ds","Nintendo DS","NINTENDO DS","nintendo 3ds","Nintendo 3DS","NINTENDO 3DS","ps1","PS1","PS1","ps2 slim","PS2 Slim","PS2 SLIM","ps3 slim","PS3 Slim","PS3 SLIM","ps3 super slim","PS3 Super Slim","PS3 SUPER SLIM","ps4 fat","PS4 Fat","PS4 FAT","ps4 pro","PS4 Pro","PS4 PRO","ps4 slim","PS4 Slim","PS4 SLIM","xbox 360","XBOX 360","XBOX 360","xbox one","XBOX One","XBOX ONE","xbox series s","XBOX Series S","XBOX SERIES S","xbox series x","XBOX Series X","XBOX SERIES X","pandora mini","Pandora Mini","PANDORA MINI","pandora pro","Pandora Pro","PANDORA PRO","sega mini u box","Sega Mini U Box","SEGA MINI U BOX","sega 16bit mini u box","Sega 16bit Mini U Box","SEGA 16BIT MINI U BOX","sup x7m","Sup X7M","SUP X7M","r35s","R35S","R35S","r36s","R36S","R36S","usb","USB","USB","sd card","SD Card","SD CARD"];
+const variants = ["64gb","128gb","256gb","500gb","1tb","64gb optional","128gb optional","256gb optional","500gb optional","1tb optional","dual","single","sd card 64gb","sd card 128gb","sd card 256gb","64GB","128GB","256GB","500GB","1TB","64GB Optional","128GB Optional","256GB Optional","500GB Optional","1TB Optional","Dual","Single","SD CARD 64GB","SD CARD 128GB","SD CARD 256GB","64GB OPTIONAL","128GB OPTIONAL","256GB OPTIONAL","500GB OPTIONAL","1TB OPTIONAL","DUAL","SINGLE"];
+
+/* ------------------ Parsing (clean mobile & altMobile) ------------------ */
+function getCustomerMobile() {
+  const raw = document.getElementById("input").value || '';
+  // look for explicit "mobile" label first
+  let line = raw.match(/(?:mobile|phone)\s*[:\n]\s*([+]?[\d-\s]+)/i)?.[1] || raw.match(/(?:\+?91[-\s]?)?\d{10}/)?.[0] || '';
+  line = (line || '').replace(/\D/g, '');
+  if(line.startsWith('91') && line.length>10) line = line.slice(-10);
+  return line;
+}
+function getCustomerAltMobile() {
+  const raw = document.getElementById("input").value || '';
+  let line = raw.match(/alternate\s*mobile(?:\s*number)?\s*[:\n]\s*([+]?[\d-\s]+)/i)?.[1] ||
+             raw.match(/alt(?:ernate)?\s*mobile\s*[:\n]?\s*([+]?[\d-\s]+)/i)?.[1] || '';
+  line = (line || '').replace(/\D/g, '');
+  if(line.startsWith('91') && line.length>10) line = line.slice(-10);
+  return line;
+}
+
 function parseInput(){
-  const raw = document.getElementById("input").value;
+  const raw = document.getElementById("input").value || '';
   const input = raw.toLowerCase();
 
-  // Order ID: "#12345" OR first number-like token at the top line
-  let orderId = (raw.match(/#\s*\d{5,}/)?.[0] || "").replace(/\s+/g,'');
+  let orderId = (raw.match(/#\s*\d{5,}/)?.[0] || '') .replace(/\s+/g,'');
   if(!orderId){
-    const firstLine = (raw.split('\n').map(s=>s.trim()).find(s=>s) || "");
+    const firstLine = (raw.split('\n').map(s=>s.trim()).find(s=>s) || '');
     const m = firstLine.match(/\d{6,}/);
     if(m) orderId = "#" + m[0];
   }
   if(!orderId) orderId = "Not found";
 
-  // Name / Mobile / Alt Mobile / Email
-  const name = (raw.match(/name\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/\n([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\nMobile/i)?.[1] || "Customer").trim();
-  const mobile = (raw.match(/mobile\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/\+?91[-\s]?\d{10}/)?.[0] || "").trim();
-  const altMobile = (raw.match(/alternate\s*mobile(?:\s*number)?\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/Alt(?:ernate)?\s*Mobile\s*\n?([^\n]+)/i)?.[1] || "").trim();
-  const email = (raw.match(/email\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "").trim();
+  const name = (raw.match(/name\s*[:\n]\s*([^\n]+)/i)?.[1] ||
+                raw.match(/\n([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\nMobile/i)?.[1] ||
+                "Customer").trim();
 
-  // Address (entire line after “Shipping address”)
+  // Clean mobiles (10-digit)
+  let mobile = getCustomerMobile();
+  let altMobile = getCustomerAltMobile();
+
+  const email = (raw.match(/email\s*[:\n]\s*([^\n]+)/i)?.[1] ||
+                 raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || '').trim();
+
   const address = (raw.match(/shipping\s*address\s*[:\n]\s*([\s\S]*?)(?:\n(?:Payments|Payment|Additional|Customer|Mobile|Email|$))/i)?.[1] ||
                   raw.match(/address\s*[:\n]\s*([^\n]+)/i)?.[1] || "").trim().replace(/\s+/g,' ').trim();
 
-  // Landmark: try to pick “Near ...”, “Opp/Behind/Beside ...”, or explicit Landmark:
-  let landmark = (raw.match(/landmark\s*[:\n]\s*([^\n]+)/i)?.[1] || "").trim();
+  let landmark = (raw.match(/landmark\s*[:\n]\s*([^\n]+)/i)?.[1] || '').trim();
   if(!landmark){
     const near = address.match(/\b(?:near|opp(?:osite)?|behind|beside)\b[^,;|]+/i);
     if(near) landmark = near[0].trim();
   }
 
-  // Post office: if present explicitly
-  const postOffice = (raw.match(/post\s*office\s*[:\n]\s*([^\n]+)/i)?.[1] || "").trim();
+  const postOffice = (raw.match(/post\s*office\s*[:\n]\s*([^\n]+)/i)?.[1] || '').trim();
+  const pincode = (raw.match(/\b\d{6}\b/)?.[0] || '').trim();
 
-  // Pincode (6 digits)
-  const pincode = (raw.match(/\b\d{6}\b/)?.[0] || "").trim();
-
-  // Price block: handle “1x ₹1,899”, Subtotal, Coupon discount (DISC5) -₹5, Total PAID ₹1,894
-  const basePrice = ((raw.match(/1x\s*₹?\s*([\d,]+)/i)?.[1] || raw.match(/base\s*price\s*[:₹\s]*([\d,]+)/i)?.[1] || "0").replace(/,/g,"")).trim();
+  const basePrice = ((raw.match(/1x\s*₹?\s*([\d,]+)/i)?.[1] ||
+                      raw.match(/base\s*price\s*[:₹\s]*([\d,]+)/i)?.[1] || "0")
+                      .replace(/,/g,"")).trim();
 
   let discount = "0";
   const couponLine = raw.match(/coupon\s*discount.*?(-₹\s*[\d,]+)/i);
@@ -170,21 +277,18 @@ function parseInput(){
 
   const amountPaid = ((raw.match(/total\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] ||
                        raw.match(/\bpaid\b\s*[:₹\s]*([\d,]+)/i)?.[1] ||
-                       raw.match(/amount\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] || "0").replace(/,/g,"")).trim();
+                       raw.match(/amount\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] || "0")
+                       .replace(/,/g,"")).trim();
 
-  // Product: prefer an explicit product line; else any known product token from big list
   let detectedProduct = "Unknown Product";
-  // Try the “1 item\n<name>” style
   const afterItem = raw.split(/1\s*item/i)[1]?.trim().split('\n')[0]?.trim();
   if(afterItem && afterItem.length>2) detectedProduct = afterItem.toUpperCase();
-  // If still unknown, scan list
   if(detectedProduct==="Unknown Product"){
     const lower = input;
     products.sort((a,b)=>b.length-a.length);
     for (let p of products){ if (lower.includes(p.toLowerCase())) { detectedProduct = p.toUpperCase(); break; } }
   }
 
-  // Variant: from product line or generic keys
   let variant = "";
   const vKey = raw.match(/(?:size|storage|variant|verient)\s*[:\s]*([^\n]+)/i);
   if(vKey) variant = vKey[1].trim().toUpperCase();
@@ -193,13 +297,12 @@ function parseInput(){
     if(vInName) variant = vInName[1].toUpperCase();
   }
 
-  // Geo / ETA
   let city = "Unknown", state = "Unknown", distance = "N/A", eta = "N/A";
   if (pincode && pincodeLatLng[pincode]) {
     const dest = pincodeLatLng[pincode];
     city = dest.city || "Unknown";
     state = dest.state || "Unknown";
-    distance = haversine(28.8,79.0,dest.lat,dest.lng).toFixed(0); // Rampur approx
+    distance = haversine(28.8,79.0,dest.lat,dest.lng).toFixed(0);
     eta = estimateDeliveryByDistance(distance);
   }
 
@@ -212,7 +315,7 @@ function parseInput(){
   };
 }
 
-// ---------- Message builders (exact style) ----------
+/* ------------------ Message builders ------------------ */
 function buildPrepaidMessage(d){
   const estWindow = d.eta && d.eta!=="N/A" ? estimatedWindowFromEta(d.eta) : "";
   return `🟢 Prepaid Order on WhatsApp
@@ -239,19 +342,12 @@ Amount Paid: ₹${d.amountPaid}
 📅 Estimated Delivery: ${estWindow}`;
 }
 
-// Enforce COD rules:
-// - advance = max(₹500, 10% of base)  (ignore any input amountPaid for COD)
-// - cod charges = 0
-// - discount shows 0
-// - ETA bumped +2–3 days
 function buildCodMessage(d){
   const base = parseInt(d.basePrice||"0",10);
   const advance = Math.max(500, Math.round(base * 0.10));
   const rest = Math.max(base - advance, 0);
-
   const codEta = d.eta && d.eta !== "N/A" ? bumpEtaRangeString(d.eta, 2, 3) : d.eta;
   const estCodWindow = codEta && codEta!=="N/A" ? estimatedWindowFromEta(codEta) : "";
-
   return `🔴 COD Order on WhatsApp
 
 Order ID: ${d.orderId}
@@ -277,132 +373,108 @@ Rest on Delivery: ₹${rest}
 📅 Estimated Delivery: ${estCodWindow}`;
 }
 
-// ---------- Preview both ----------
+/* ------------------ Actions ------------------ */
 function convert(){
   const d = parseInput();
   const prepaid = buildPrepaidMessage(d);
   const cod = buildCodMessage(d);
-  document.getElementById("output").textContent = prepaid + "\n\n" + cod;
+  const both = prepaid + "\n\n" + cod;
+  document.getElementById('output').textContent = both;
+  document.getElementById('livePreview').textContent = both;
 }
 
-// ---------- Senders ----------
 function sendPrepaidToCustomer(){
-  const d = parseInput();
-  const msg = buildPrepaidMessage(d);
-  const mobile = getCustomerMobile();
-  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
-  else alert("Customer mobile number not found in input.");
+  const d = parseInput(); const msg = buildPrepaidMessage(d);
+  const mobile = (d.mobile || getCustomerMobile());
+  if(mobile) waOpen(mobile.startsWith('91') ? mobile : '91'+mobile, msg);
+  else alert('ग्राहक का मोबाइल नंबर इनपुट में नहीं मिला (Customer mobile number not found).');
 }
-function sendPrepaidToOwn(){
-  const d = parseInput();
-  const msg = buildPrepaidMessage(d);
-  waOpen(getOwnNumber(), msg);
+function sendPrepaidToOwn(){ const d = parseInput(); waOpen(getOwnNumber(), buildPrepaidMessage(d)); }
+function sendCodToCustomer(){ const d = parseInput(); const msg = buildCodMessage(d);
+  const mobile = (d.mobile || getCustomerMobile());
+  if(mobile) waOpen(mobile.startsWith('91') ? mobile : '91'+mobile, msg);
+  else alert('ग्राहक का मोबाइल नंबर इनपुट में नहीं मिला (Customer mobile number not found).');
 }
-function sendCodToCustomer(){
+function sendCodToOwn(){ const d = parseInput(); waOpen(getOwnNumber(), buildCodMessage(d)); }
+
+function sendThanks(){
   const d = parseInput();
-  const msg = buildCodMessage(d);
-  const mobile = getCustomerMobile();
-  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
-  else alert("Customer mobile number not found in input.");
-}
-function sendCodToOwn(){
-  const d = parseInput();
-  const msg = buildCodMessage(d);
-  waOpen(getOwnNumber(), msg);
+  const msg = `🌟 गेम्सप्लैनेट\n\n🙏 नमस्ते ${d.name} जी,\n\nधन्यवाद आपका ऑर्डर ${d.orderId} के लिए।\n📦 प्रोडक्ट: ${d.detectedProduct} (${d.variant})\n📍 पिनकोड: ${d.pincode} | दूरी: ${d.distance} km\n⏳ अनुमानित डिलीवरी: ${d.eta}\n\n- टीम गेम्सप्लैनेट`;
+  const mobile = (d.mobile || getCustomerMobile());
+  if(mobile) waOpen(mobile.startsWith('91') ? mobile : '91'+mobile, msg);
+  else alert('ग्राहक का मोबाइल नंबर इनपुट में नहीं मिला (Customer mobile number not found).');
 }
 
-// ---------- Optional extras ----------
-function sendThanks() {
-  const d = parseInput();
-  const msg =
-`🌟 GamesPlanet
-🙏 Hello ${d.name} ji, thank you for your order ${d.orderId}.
-📦 Product: ${d.detectedProduct} (${d.variant})
-📍 Pincode: ${d.pincode} | 📏 Distance: ${d.distance} km
-⏳ Estimated Delivery: ${d.eta}
-🚚 Your order will be shipped soon between 8PM–10PM.
-🔗 Tracking will update on our website after dispatch.
-🖼️ On request, we can send *parcel pic & tracking number* here on WhatsApp.
-💚 Team GamesPlanet`;
-  const mobile = getCustomerMobile();
-  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
-  else alert("Customer mobile number not found in input.");
-}
-
-/*
-  sendAbandonedCart updated as requested:
-  - Bilingual (Hindi + English).
-  - If base price <= 999: explicitly say COD not available and do NOT include COD lines.
-  - COD is allowed only for items with base price >= 1399 (show COD advance/rest and ETA).
-  - Message includes that ordering via WhatsApp will ensure subscribers get discount.
-*/
+/* ------------------ Abandoned cart (bilingual) - final ------------------ */
 function sendAbandonedCart() {
   const d = parseInput();
   const base = parseInt(d.basePrice || "0",10);
   const discount = parseInt(d.discount || "0",10);
   const prepaidAmount = Math.max(base - discount, 0);
 
-  const codThreshold = 1399; // COD only for items ₹1,399 and above
+  const codThreshold = 1399;
   const codAvailable = base >= codThreshold;
   const codAdvance = Math.max(500, Math.round(base * 0.10));
   const codRemaining = Math.max(base - codAdvance, 0);
   const codEta = d.eta && d.eta !== "N/A" ? bumpEtaRangeString(d.eta, 2, 3) : d.eta;
 
-  // Build bilingual message (Hindi + English)
   let msg =
-`🌟 GamesPlanet
+`🌟 गेम्सप्लैनेट (GamesPlanet)
 
-🙏 Namaste ${d.name} ji (Hello ${d.name} ji),
+🙏 नमस्ते ${d.name} जी (Hello ${d.name} ji),
 
-📝 Aapka adhoora order mila (We received your incomplete order):
-– Order ID: ${d.orderId}
-– Product: ${d.detectedProduct} (${d.variant})
-– Base Price: ₹${base}
-📍 Shehar/City: ${d.city}
-📏 Doori/Distance: ${d.distance} km
+📝 आपका अधूरा ऑर्डर प्राप्त हुआ (We received your incomplete order):
+– ऑर्डर आईडी (Order ID): ${d.orderId}
+– प्रोडक्ट (Product): ${d.detectedProduct} (${d.variant})
+– मूल कीमत (Base Price): ₹${base}
+📍 शहर (City): ${d.city}
+📏 दूरी (Distance): ${d.distance} कि.मी. (km)
 
-💰 Prepaid Offer / Prepaid Price:
-– ₹${base} – ₹${discount} discount = ₹${prepaidAmount}
-🚚 Anumanit delivery (Estimated delivery - Prepaid): ${d.eta}
+💰 प्रीपेड ऑफ़र (Prepaid Offer):
+– ₹${base} – ₹${discount} छूट (discount) = ₹${prepaidAmount}
+🚚 अनुमानित डिलीवरी (Estimated Delivery - Prepaid): ${d.eta}
 `;
 
   if (codAvailable) {
     msg += `
-💵 Cash on Delivery (COD) uplabdh hai (available).
-➡ COD Advance (abhi pay kijiye / pay now): ₹${codAdvance}
-➡ Baaki delivery par (Remaining on Delivery): ₹${codRemaining}
-⏳ Anumanit delivery (Estimated delivery - COD): ${codEta}
+💵 कैश ऑन डिलीवरी (COD) उपलब्ध है (Available).
+➡ अग्रिम भुगतान (Advance to pay now): ₹${codAdvance}
+➡ शेष डिलीवरी पर (Remaining on Delivery): ₹${codRemaining}
+⏳ अनुमानित डिलीवरी (Estimated Delivery - COD): ${codEta}
 `;
   } else {
     if (base <= 999) {
       msg += `
-❗ COD uplabdh nahi hai (COD not available) ₹999 ya usse kam ke items par.
-(❗ COD not available for items priced ₹999 or below.)
-👉 Kripya prepaid karke order confirm kijiye (Please confirm order via prepaid).
+❗ ₹999 या उससे कम कीमत वाले प्रोडक्ट पर COD उपलब्ध नहीं है  
+(❗ COD is not available for products priced ₹999 or below).  
+👉 कृपया प्रीपेड करके ऑर्डर कन्फर्म करें  
+(Please confirm your order via prepaid).
 `;
     } else {
       msg += `
-❗ COD uplabdh nahi hai (COD not available) is item par.
-(❗ COD is not available for this item. COD is available only for orders ₹1,399 and above.)
-👉 Aap prepaid karke order confirm kar sakte hain. (You can confirm order via prepaid.)
+❗ इस प्रोडक्ट पर COD उपलब्ध नहीं है  
+(❗ COD is not available for this item).  
+📌 COD केवल ₹1399 और उससे अधिक के ऑर्डर पर उपलब्ध है  
+(COD is available only for orders ₹1399 and above).  
+👉 आप प्रीपेड करके ऑर्डर कन्फर्म कर सकते हैं  
+(You can confirm your order via prepaid).
 `;
     }
   }
 
   msg += `
-👉 Aap chahe toh seedha WhatsApp par order kar sakte hain.  
-(You can also order directly on WhatsApp.)  
+👉 आप चाहें तो सीधे व्हाट्सएप पर भी ऑर्डर कर सकते हैं  
+(You can also order directly on WhatsApp).  
 
-💚 Sabhi subscribers ko discount zaroor milega.  
-(All subscribers will definitely get a discount.)  
+💚 सभी सब्सक्राइबर्स को छूट ज़रूर मिलेगी  
+(All subscribers will definitely get a discount).  
 
-– Team GamesPlanet`;
+– टीम गेम्सप्लैनेट (Team GamesPlanet)`;
 
-  const mobile = getCustomerMobile();
-  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
-  else alert("Customer mobile number not found in input.");
+  const mobile = (d.mobile || getCustomerMobile());
+  if(mobile) waOpen(mobile.startsWith('91') ? mobile : '91'+mobile, msg);
+  else alert('ग्राहक का मोबाइल नंबर इनपुट में नहीं मिला (Customer mobile number not found).');
 }
 </script>
-
 </body>
 </html>
