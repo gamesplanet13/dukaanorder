@@ -239,7 +239,7 @@ Amount Paid: ₹${d.amountPaid}
 📅 Estimated Delivery: ${estWindow}`;
 }
 
-// Enforce COD rules you asked:
+// Enforce COD rules:
 // - advance = max(₹500, 10% of base)  (ignore any input amountPaid for COD)
 // - cod charges = 0
 // - discount shows 0
@@ -328,39 +328,76 @@ function sendThanks() {
   if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
   else alert("Customer mobile number not found in input.");
 }
+
+/*
+  sendAbandonedCart updated as requested:
+  - Bilingual (Hindi + English).
+  - If base price <= 999: explicitly say COD not available and do NOT include COD lines.
+  - COD is allowed only for items with base price >= 1399 (show COD advance/rest and ETA).
+  - Message includes that ordering via WhatsApp will ensure subscribers get discount.
+*/
 function sendAbandonedCart() {
   const d = parseInput();
   const base = parseInt(d.basePrice || "0",10);
   const discount = parseInt(d.discount || "0",10);
   const prepaidAmount = Math.max(base - discount, 0);
+
+  const codThreshold = 1399; // COD only for items ₹1,399 and above
+  const codAvailable = base >= codThreshold;
   const codAdvance = Math.max(500, Math.round(base * 0.10));
   const codRemaining = Math.max(base - codAdvance, 0);
   const codEta = d.eta && d.eta !== "N/A" ? bumpEtaRangeString(d.eta, 2, 3) : d.eta;
 
-  const msg =
+  // Build bilingual message (Hindi + English)
+  let msg =
 `🌟 GamesPlanet
 
-🙏 Hello ${d.name} ji,
+🙏 Namaste ${d.name} ji (Hello ${d.name} ji),
 
-📝 Incomplete Order Details:
+📝 Aapka adhoora order mila (We received your incomplete order):
 – Order ID: ${d.orderId}
 – Product: ${d.detectedProduct} (${d.variant})
 – Base Price: ₹${base}
-📍 City: ${d.city}
-📏 Distance: ${d.distance} km
+📍 Shehar/City: ${d.city}
+📏 Doori/Distance: ${d.distance} km
 
-💰 Prepaid Offer: ₹${base} – ₹${discount} discount = ₹${prepaidAmount}
-🚚 Estimated Delivery:
-– Prepaid: ${d.eta}
+💰 Prepaid Offer / Prepaid Price:
+– ₹${base} – ₹${discount} discount = ₹${prepaidAmount}
+🚚 Anumanit delivery (Estimated delivery - Prepaid): ${d.eta}
+`;
 
-💵 COD: ₹${base} (no discount)
-➡ COD Advance: ₹${codAdvance}
-➡ Remaining on Delivery: ₹${codRemaining}
-🚚 Estimated Delivery:
-– COD: ${codEta}
+  if (codAvailable) {
+    msg += `
+💵 Cash on Delivery (COD) uplabdh hai (available).
+➡ COD Advance (abhi pay kijiye / pay now): ₹${codAdvance}
+➡ Baaki delivery par (Remaining on Delivery): ₹${codRemaining}
+⏳ Anumanit delivery (Estimated delivery - COD): ${codEta}
+`;
+  } else {
+    if (base <= 999) {
+      msg += `
+❗ COD uplabdh nahi hai (COD not available) ₹999 ya usse kam ke items par.
+(❗ COD not available for items priced ₹999 or below.)
+👉 Kripya prepaid karke order confirm kijiye (Please confirm order via prepaid).
+`;
+    } else {
+      msg += `
+❗ COD uplabdh nahi hai (COD not available) is item par.
+(❗ COD is not available for this item. COD is available only for orders ₹1,399 and above.)
+👉 Aap prepaid karke order confirm kar sakte hain. (You can confirm order via prepaid.)
+`;
+    }
+  }
 
-👉 Complete payment soon to confirm your order.
-💚 Team GamesPlanet`;
+  msg += `
+👉 Aap chahe toh seedha WhatsApp par order kar sakte hain.  
+(You can also order directly on WhatsApp.)  
+
+💚 Sabhi subscribers ko discount zaroor milega.  
+(All subscribers will definitely get a discount.)  
+
+– Team GamesPlanet`;
+
   const mobile = getCustomerMobile();
   if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
   else alert("Customer mobile number not found in input.");
