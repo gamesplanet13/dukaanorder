@@ -1,220 +1,218 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>GamesPlanet Final Order Converter (Patched)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>GamesPlanet - Patched Order Tool</title>
   <style>
-    body { font-family: Arial, Helvetica, sans-serif; padding: 20px; max-width: 980px; margin: 0 auto; }
-    textarea { width: 100%; height: 280px; font-size: 14px; }
-    pre { background: #f6f7f9; padding: 12px; white-space: pre-wrap; font-size: 14px; border-radius: 8px; border: 1px solid #e6e6e6; }
-    button { padding: 10px 14px; font-size: 14px; margin: 6px 6px 6px 0; cursor: pointer; border-radius: 8px; border: 1px solid #ddd; background:#fff; }
-    .row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
-    .hr { height:1px; background:#e6e6e6; margin:14px 0; }
+    body{font-family:Arial, Helvetica, sans-serif; max-width:980px; margin:20px auto; padding:16px;}
+    textarea{width:100%; height:260px; font-size:14px; padding:10px; border-radius:6px;}
+    pre{background:#f7f8fb;padding:12px;border-radius:8px;border:1px solid #e6e9ef; white-space:pre-wrap;}
+    button{padding:8px 12px;margin:6px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+    .hr{height:1px;background:#e6e6e6;margin:12px 0;}
   </style>
 </head>
 <body>
 
-<h2>GamesPlanet Final Order Converter (Patched)</h2>
-
-<textarea id="input" placeholder="Paste order details here"></textarea>
+<h2>GamesPlanet — Patched Order Converter</h2>
+<textarea id="input" placeholder="Paste raw order text here..."></textarea>
 
 <div class="row">
   <button onclick="selectAll()">Select All</button>
   <button onclick="clearText()">Clear</button>
-  <button onclick="convert()">Convert (Preview Both)</button>
-  <button onclick="copyAll()">Copy All</button>
+  <button onclick="convert()">Convert (Preview)</button>
+  <button onclick="copyAll()">Copy Output</button>
 </div>
 
 <div class="row">
-  <button onclick="sendPrepaidToCustomer()">Send Prepaid to Customer</button>
-  <button onclick="sendPrepaidToOwn()">Send Prepaid to Own</button>
-  <button onclick="sendCodToCustomer()">Send COD to Customer</button>
-  <button onclick="sendCodToOwn()">Send COD to Own</button>
+  <button onclick="sendPrepaidToCustomer()">Send Prepaid → Customer</button>
+  <button onclick="sendPrepaidToOwn()">Send Prepaid → Own</button>
+  <button onclick="sendCodToCustomer()">Send COD → Customer</button>
+  <button onclick="sendCodToOwn()">Send COD → Own</button>
 </div>
 
 <div class="row">
   <button onclick="sendThanks()">Send Thanks</button>
-  <button onclick="sendAbandonedCart()">Send Abandoned Cart</button>
+  <button onclick="sendAbandonedCart()">Send Abandoned Cart (customer + sales)</button>
+  <button onclick="quickBuyToSales()">Quick Buy → Sales (QR)</button>
 </div>
 
 <div class="hr"></div>
 <pre id="output"></pre>
 
 <script>
-// ---------- Load pincode data ----------
+/* ------------------ utilities & data ------------------ */
 let pincodeLatLng = {};
-fetch('pincode_data.json')
-  .then(r => r.json())
-  .then(d => { pincodeLatLng = d; })
-  .catch(e => console.log("Error loading pincode data:", e));
+fetch('pincode_data.json').then(r=>r.json()).then(d=>pincodeLatLng=d).catch(e=>console.log('pincode load err',e));
 
-// ---------- Product & Variant lists (trimmed) ----------
-const products = ["Super Mini U Box MD 16bit Sega ","aoko game stick","Aoko Game Stick","AOKO GAME STICK","fmcb","FMCB","fmcb + usb","gamestick lite","Gamestick Lite","GAMESTICK LITE","m88","M88","m99","M99","sd card","SD Card","usb","USB"];
-const variants = ["64gb","128gb","256gb","500gb","1tb","64GB","128GB","256GB"];
+const products = ["m88","fmcb","ps2","gamestick","gamebox","sd card","sdcard","usb","pendrive","500gb"];
+const variants = ["64gb","128gb","256gb","500gb","1tb"];
 
-// ---------- Helpers ----------
-function selectAll(){ const t = document.getElementById("input"); t.focus(); t.select(); }
-function clearText(){ document.getElementById("input").value=""; document.getElementById("output").textContent=""; }
-function copyAll(){ navigator.clipboard.writeText(document.getElementById("output").textContent).then(()=>alert("Output copied!")); }
-function encodeForWA(text){ return encodeURIComponent(text); }
-function waOpen(number, msg){ window.open(`https://wa.me/${number}?text=${encodeForWA(msg)}`, "_blank"); }
-function getOwnNumber(){ return "917983624797"; }
-
-// Prefer explicit mobile line; fallback to any 10-digit match
+// small helpers
+function selectAll(){ const t=document.getElementById('input'); t.focus(); t.select(); }
+function clearText(){ document.getElementById('input').value=''; document.getElementById('output').textContent=''; }
+function copyAll(){ navigator.clipboard.writeText(document.getElementById('output').textContent).then(()=>alert('Copied!')).catch(()=>alert('Copy failed')); }
+function encodeForWA(t){ return encodeURIComponent(t); }
+function waOpen(number, msg){ window.open(`https://wa.me/${number}?text=${encodeForWA(msg)}`, '_blank'); }
+function getOwnNumber(){ return '917983624797'; } // default own/sales number
 function getCustomerMobile() {
-  const raw = document.getElementById("input").value;
-  const line = raw.match(/(?:mobile|phone)\s*[:\n]\s*([+]?91[-\s]?\d{10}|\d{10})/i)?.[1];
-  if (line) return line.replace(/\D/g,"").replace(/^0+/, "");
-  const any = raw.match(/(?:\+?91[-\s]?)?\d{10}/);
-  return any ? any[0].replace(/\D/g,"").replace(/^0+/, "") : "";
+  const raw = document.getElementById('input').value;
+  const m = raw.match(/(?:mobile|phone)\\s*[:\\n]\\s*([+]?91[-\\s]?\\d{10}|\\d{10})/i)?.[1];
+  if (m) return m.replace(/\\D/g,'').replace(/^0+/, '');
+  const any = raw.match(/(?:\\+?91[-\\s]?)?\\d{10}/);
+  return any ? any[0].replace(/\\D/g,'').replace(/^0+/, '') : '';
 }
 
+/* haversine distance */
 function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI/180;
-  const dLon = (lon2 - lon1) * Math.PI/180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const R=6371;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  const c=2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return R*c;
 }
-function estimateDeliveryByDistance(distance) {
+function estimateDeliveryByDistance(distance){
   const d = Number(distance);
-  if (d <= 30) return "1 day";
-  else if (d <= 60) return "1-2 days";
-  else if (d <= 100) return "2-3 days";
-  else if (d <= 200) return "3-4 days";
-  else if (d <= 500) return "4-5 days";
-  else if (d <= 1000) return "4-6 days";
-  else if (d <= 1500) return "5–7 days";
-  else if (d <= 2000) return "6–8 days";
-  else if (d <= 3000) return "6–10 days";
-  else return "8–12 days (sometimes up to 15 days)";
+  if(isNaN(d)) return 'N/A';
+  if(d<=30) return '1 day';
+  if(d<=60) return '1-2 days';
+  if(d<=100) return '2-3 days';
+  if(d<=200) return '3-4 days';
+  if(d<=500) return '4-5 days';
+  if(d<=1000) return '4-6 days';
+  if(d<=1500) return '5–7 days';
+  if(d<=2000) return '6–8 days';
+  if(d<=3000) return '6–10 days';
+  return '8–12 days';
 }
-function parseEtaRange(etaStr){ if(!etaStr || etaStr==="N/A") return null; const nums = (etaStr.match(/\d+/g)||[]).map(n=>parseInt(n,10)); if(nums.length === 1) return {min: nums[0], max: nums[0]}; if(nums.length >= 2) return {min: nums[0], max: nums[1]}; return null; }
-function bumpEtaRangeString(etaStr, addMin=2, addMax=3){ const r = parseEtaRange(etaStr); if(!r) return etaStr; const min = r.min + addMin; const max = r.max + addMax; return (min===max) ? `${min} days` : `${min}-${max} days`; }
-function todayStrOffset(days){ const d = new Date(); d.setDate(d.getDate()+days); return d.toLocaleDateString('en-IN', {day:'2-digit', month:'short'}); }
-function estimatedWindowFromEta(etaStr){ const r = parseEtaRange(etaStr); if(!r) return etaStr || ""; const start = todayStrOffset(r.min); const end   = todayStrOffset(r.max); return (r.min===r.max) ? `${start}` : `${start} to ${end}`; }
+function parseEtaRange(etaStr){ if(!etaStr||etaStr==='N/A') return null; const nums=(etaStr.match(/\\d+/g)||[]).map(Number); if(nums.length===1) return {min:nums[0],max:nums[0]}; if(nums.length>=2) return {min:nums[0],max:nums[1]}; return null; }
+function bumpEtaRangeString(etaStr, addMin=2, addMax=3){ const r=parseEtaRange(etaStr); if(!r) return etaStr; const min=r.min+addMin; const max=r.max+addMax; return (min===max)?`${min} days`:`${min}-${max} days`; }
+function todayStrOffset(days){ const d=new Date(); d.setDate(d.getDate()+days); return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }
+function estimatedWindowFromEta(etaStr){ const r=parseEtaRange(etaStr); if(!r) return etaStr||''; const s=todayStrOffset(r.min), e=todayStrOffset(r.max); return (r.min===r.max)?s:`${s} to ${e}`; }
 
-// ---------- New: COD & Discount helpers (with M88 special case) ----------
-function computeCodCharges(basePrice){ basePrice = Number(basePrice) || 0; if(basePrice > 0 && basePrice < 1499) return 99; return 0; }
+/* ------------------ COD & Discount rules ------------------ */
+/* COD charges: base >0 && <1499 => 99 ; else 0 */
+function computeCodCharges(basePrice){ basePrice = Number(basePrice)||0; if(basePrice>0 && basePrice<1499) return 99; return 0; }
 
+/* compute cod amounts, with M88 special COD base=7499 */
 function computeCodAmountsForProduct(d){
-  // special M88 handling: COD base fixed 7499
-  let base = Number(d.basePrice) || 0;
+  let base = Number(d.basePrice)||0;
   const prod = (d.detectedProduct||'').toLowerCase();
-  if(prod.indexOf('m88') !== -1) base = 7499;
-
+  if(prod.includes('m88')) base = 7499;
   const codCharges = computeCodCharges(base);
-  // Advance: minimum ₹500 OR 10% of base (whichever is higher)
-  const advance = Math.max(500, Math.round(base * 0.10));
+  const advance = Math.max(500, Math.round(base * 0.10)); // min 500 or 10%
   const rest = Math.max(0, (base + codCharges) - advance);
   return { advance, rest, codCharges, codBase: base };
 }
 
+/* prepaid discount rules (applied only when paymentMethod === 'wa_qr') */
+/* M88 -> final prepaid 6699 (discount = base - 6699)
+   FMCB/PS2 + usb/pendrive/pd/ssd/combo/500gb => 5% of base
+   gamestick/sdcard => fixed: 64->200, 128->300, 256->500
+*/
 function computePrepaidDiscount(d, paymentMethod){
-  const base = Number(d.basePrice) || 0;
-  if(!base || base <= 0) return 0;
-  if(paymentMethod !== 'wa_qr') {
-    // No prepaid discount unless full QR payment
-    return 0;
-  }
+  const base = Number(d.basePrice)||0;
+  if(!base || base<=0) return 0;
+  if(paymentMethod !== 'wa_qr') return 0;
 
-  const prod = (d.detectedProduct || '').toLowerCase();
-  const variant = (d.variant || '').toLowerCase();
-  const notes = ((d.notes||'') + ' ' + (d.extra || '')).toLowerCase();
-  const containsAny = (str, arr) => arr.some(tok => str.indexOf(tok) !== -1);
+  const prod = (d.detectedProduct||'').toLowerCase();
+  const variant = (d.variant||'').toLowerCase();
+  const notes = ((d.notes||'') + ' ' + (d.extra||'')).toLowerCase();
+  const containsAny = (s, arr) => arr.some(tok => s.indexOf(tok)!==-1);
 
-  // M88 prepaid special price => final 6699
-  if(prod.indexOf('m88') !== -1){
-    return base > 6699 ? base - 6699 : Math.max(0, base - 6699);
+  // M88 special prepaid final price 6699
+  if(prod.includes('m88')){
+    return Math.max(0, base - 6699);
   }
 
   // FMCB / PS2 + usb/hdd/pd/ssd/combo/pendrive/500gb => 5%
-  if( (prod.indexOf('fmcb') !== -1 || prod.indexOf('ps2') !== -1)
-      && containsAny(variant + ' ' + notes, ['usb','hdd','pd','ssd','combo','pendrive','500gb']) ){
+  if( (prod.includes('fmcb') || prod.includes('ps2')) &&
+      containsAny(variant+' '+notes, ['usb','hdd','pd','ssd','combo','pendrive','500gb']) ){
     return Math.round(base * 0.05);
   }
 
-  // Gamestick/gamebox/sd card fixed discounts by size
-  if( containsAny(prod, ['gamestick','game stick','gamebox','sd card','sdcard','sd-card'])
-      || containsAny(variant, ['64','128','256']) ){
-    if(variant.indexOf('64') !== -1 || prod.indexOf('64gb') !== -1) return 200;
-    if(variant.indexOf('128') !== -1 || prod.indexOf('128gb') !== -1) return 300;
-    if(variant.indexOf('256') !== -1 || prod.indexOf('256gb') !== -1) return 500;
+  // gamestick / sd card size based
+  if( containsAny(prod, ['gamestick','game stick','gamebox','sd card','sdcard','sd-card']) || containsAny(variant, ['64','128','256']) ){
+    if(variant.includes('64') || prod.includes('64gb')) return 200;
+    if(variant.includes('128') || prod.includes('128gb')) return 300;
+    if(variant.includes('256') || prod.includes('256gb')) return 500;
     return 0;
   }
 
   return 0;
 }
 
-// ---------- Robust Parser (adapted from original) ----------
+/* ------------------ Parser (robust) ------------------ */
 function parseInput(){
-  const raw = document.getElementById("input").value;
-  const input = raw.toLowerCase();
+  const raw = document.getElementById('input').value || '';
+  const lower = raw.toLowerCase();
 
-  let orderId = (raw.match(/#\s*\d{5,}/)?.[0] || "").replace(/\s+/g,'');
+  // order id
+  let orderId = raw.match(/#\s*\d{5,}/)?.[0] || '';
   if(!orderId){
-    const firstLine = (raw.split('\n').map(s=>s.trim()).find(s=>s) || "");
-    const m = firstLine.match(/\d{6,}/);
-    if(m) orderId = "#" + m[0];
+    const fl = raw.split('\n').map(s=>s.trim()).find(s=>s);
+    const m = fl && fl.match(/\d{6,}/);
+    if(m) orderId = '#'+m[0];
   }
-  if(!orderId) orderId = "Not found";
+  if(!orderId) orderId = 'Not found';
 
-  const name = (raw.match(/name\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/\n([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\nMobile/i)?.[1] || "Customer").trim();
-  const mobile = (raw.match(/mobile\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/\+?91[-\s]?\d{10}/)?.[0] || "").trim();
-  const altMobile = (raw.match(/alternate\s*mobile(?:\s*number)?\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/Alt(?:ernate)?\s*Mobile\s*\n?([^\n]+)/i)?.[1] || "").trim();
-  const email = (raw.match(/email\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "").trim();
+  // name / mobile / alt / email
+  const name = (raw.match(/name\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/\n([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\nMobile/i)?.[1] || 'Customer').trim();
+  const mobile = (raw.match(/mobile\s*[:\n]\s*([+\d\-\s]{6,})/i)?.[1] || raw.match(/(?:\+?91[-\s]?)?\d{10}/)?.[0] || '').trim();
+  const altMobile = (raw.match(/alt(?:ernate)?\s*mobile\s*[:\n]\s*([^\n]+)/i)?.[1] || '').trim();
+  const email = (raw.match(/email\s*[:\n]\s*([^\n]+)/i)?.[1] || raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || '').trim();
 
+  // address
   const address = (raw.match(/shipping\s*address\s*[:\n]\s*([\s\S]*?)(?:\n(?:Payments|Payment|Additional|Customer|Mobile|Email|$))/i)?.[1] ||
-                  raw.match(/address\s*[:\n]\s*([^\n]+)/i)?.[1] || "").trim().replace(/\s+/g,' ').trim();
+                   raw.match(/address\s*[:\n]\s*([^\n]+)/i)?.[1] || '').trim().replace(/\s+/g,' ');
 
-  let landmark = (raw.match(/landmark\s*[:\n]\s*([^\n]+)/i)?.[1] || "").trim();
+  let landmark = (raw.match(/landmark\s*[:\n]\s*([^\n]+)/i)?.[1] || '').trim();
   if(!landmark){
-    const near = address.match(/\b(?:near|opp(?:osite)?|behind|beside)\b[^,;|]+/i);
+    const near = address && address.match(/\b(?:near|opp(?:osite)?|behind|beside)\b[^,;|]+/i);
     if(near) landmark = near[0].trim();
   }
 
-  const postOffice = (raw.match(/post\s*office\s*[:\n]\s*([^\n]+)/i)?.[1] || "").trim();
-  const pincode = (raw.match(/\b\d{6}\b/)?.[0] || "").trim();
+  const postOffice = (raw.match(/post\s*office\s*[:\n]\s*([^\n]+)/i)?.[1] || '').trim();
+  const pincode = (raw.match(/\b\d{6}\b/)?.[0] || '').trim();
 
-  const basePrice = ((raw.match(/1x\s*₹?\s*([\d,]+)/i)?.[1] || raw.match(/base\s*price\s*[:₹\s]*([\d,]+)/i)?.[1] || "0").replace(/,/g,"")).trim();
-
-  let discount = "0";
+  const basePrice = ((raw.match(/1x\s*₹?\s*([\d,]+)/i)?.[1] || raw.match(/base\s*price\s*[:₹\s]*([\d,]+)/i)?.[1] || '0').replace(/,/g,'')).trim();
+  let discount = '0';
   const couponLine = raw.match(/coupon\s*discount.*?(-₹\s*[\d,]+)/i);
-  if (couponLine) discount = couponLine[1].replace(/[^\d]/g,'');
+  if(couponLine) discount = couponLine[1].replace(/[^\d]/g,'');
   else {
     const d2 = raw.match(/discount\s*applied\s*[:₹\s-]*([\d,]+)/i);
-    if (d2) discount = d2[1].replace(/,/g,'');
+    if(d2) discount = d2[1].replace(/,/g,'');
   }
-
   const amountPaid = ((raw.match(/total\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] ||
-                       raw.match(/\bpaid\b\s*[:₹\s]*([\d,]+)/i)?.[1] ||
-                       raw.match(/amount\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] || "0").replace(/,/g,"")).trim();
+                      raw.match(/\bpaid\b\s*[:₹\s]*([\d,]+)/i)?.[1] ||
+                      raw.match(/amount\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] || '0').replace(/,/g,'')).trim();
 
-  let detectedProduct = "Unknown Product";
+  // detect product
+  let detectedProduct = 'Unknown Product';
   const afterItem = raw.split(/1\s*item/i)[1]?.trim().split('\n')[0]?.trim();
-  if(afterItem && afterItem.length>2) detectedProduct = afterItem.toUpperCase();
-  if(detectedProduct==="Unknown Product"){
-    const lower = input;
-    products.sort((a,b)=>b.length-a.length);
-    for (let p of products){ if (lower.includes(p.toLowerCase())) { detectedProduct = p.toUpperCase(); break; } }
+  if(afterItem && afterItem.length>2) detectedProduct = afterItem.trim();
+  if(detectedProduct==='Unknown Product'){
+    for(const p of products.sort((a,b)=>b.length-a.length)){
+      if(lower.includes(p)) { detectedProduct = p; break; }
+    }
   }
 
-  let variant = "";
+  // variant
+  let variant = '';
   const vKey = raw.match(/(?:size|storage|variant|verient)\s*[:\s]*([^\n]+)/i);
-  if(vKey) variant = vKey[1].trim().toUpperCase();
+  if(vKey) variant = vKey[1].trim();
   else {
     const vInName = detectedProduct.match(/\b(64GB|128GB|256GB|500GB|1TB)\b/i);
     if(vInName) variant = vInName[1].toUpperCase();
   }
 
-  let city = "Unknown", state = "Unknown", distance = "N/A", eta = "N/A";
-  if (pincode && pincodeLatLng[pincode]) {
+  let city='Unknown', state='Unknown', distance='N/A', eta='N/A';
+  if(pincode && pincodeLatLng[pincode]){
     const dest = pincodeLatLng[pincode];
-    city = dest.city || "Unknown";
-    state = dest.state || "Unknown";
-    distance = haversine(28.8,79.0,dest.lat,dest.lng).toFixed(0); // Rampur approx
+    city = dest.city || 'Unknown'; state = dest.state||'Unknown';
+    distance = haversine(28.8,79.0, dest.lat, dest.lng).toFixed(0);
     eta = estimateDeliveryByDistance(distance);
   }
 
@@ -227,16 +225,13 @@ function parseInput(){
   };
 }
 
-// ---------- Message builders (patched to use computed values) ----------
+/* ------------------ Message builders (patched) ------------------ */
 function buildPrepaidMessage(d){
-  const estWindow = d.eta && d.eta!=="N/A" ? estimatedWindowFromEta(d.eta) : "";
-  // detect payment method from input: look for 'whatsapp qr' or 'wa_qr' lowercase
-  const raw = document.getElementById('input').value.toLowerCase();
-  const paymentMethod = /wa[_\s-]?qr|whatsapp\s*qr|whatsappqr/.test(raw) ? 'wa_qr' : 'other';
-
+  const estWindow = d.eta && d.eta!=='N/A' ? estimatedWindowFromEta(d.eta) : '';
+  // force prepaid discount rules (wa_qr) as user required for final amount calculation
+  const paymentMethod = 'wa_qr';
   const prepaidDiscount = computePrepaidDiscount(d, paymentMethod);
-  const prepaidAmount = Math.max(0, Number(d.basePrice || 0) - prepaidDiscount);
-  // attach computed to d for reuse
+  const prepaidAmount = Math.max(0, Number(d.basePrice||0) - prepaidDiscount);
   d._computed = d._computed || {};
   d._computed.prepaidDiscount = prepaidDiscount;
   d._computed.prepaidAmount = prepaidAmount;
@@ -266,7 +261,6 @@ Amount Paid: ₹${d._computed.prepaidAmount}
 }
 
 function buildCodMessage(d){
-  // compute COD amounts (includes M88 special pricing)
   const codInfo = computeCodAmountsForProduct(d);
   d._computed = d._computed || {};
   d._computed.codCharges = codInfo.codCharges;
@@ -274,8 +268,8 @@ function buildCodMessage(d){
   d._computed.codRestOnDelivery = codInfo.rest;
   d._computed.codBase = codInfo.codBase;
 
-  const codEta = d.eta && d.eta !== "N/A" ? bumpEtaRangeString(d.eta, 2, 3) : d.eta;
-  const estCodWindow = codEta && codEta!=="N/A" ? estimatedWindowFromEta(codEta) : "";
+  const codEta = d.eta && d.eta!=='N/A' ? bumpEtaRangeString(d.eta,2,3) : d.eta;
+  const estCodWindow = codEta && codEta!=='N/A' ? estimatedWindowFromEta(codEta) : '';
 
   return `🔴 COD Order on WhatsApp
 
@@ -302,45 +296,78 @@ Rest on Delivery: ₹${d._computed.codRestOnDelivery}
 📅 Estimated Delivery: ${estCodWindow}`;
 }
 
-// ---------- Preview both ----------
+/* Abandoned cart detailed message (to customer) */
+function buildAbandonedCartCustomerMsg(d){
+  d._computed = d._computed || {};
+  // ensure computed values exist
+  const paymentMethod = 'wa_qr';
+  d._computed.prepaidDiscount = computePrepaidDiscount(d,paymentMethod);
+  const prepaidAmount = Math.max(0, Number(d.basePrice||0) - d._computed.prepaidDiscount);
+  const codInfo = computeCodAmountsForProduct(d);
+
+  const codEta = d.eta && d.eta!=='N/A' ? bumpEtaRangeString(d.eta,2,3) : d.eta;
+
+  return `🌟 GamesPlanet
+
+🙏 Hello ${d.name} ji,
+
+📝 Incomplete Order Details: 
+– Order ID: ${d.orderId}
+– Product: ${d.detectedProduct} (${d.variant})
+– Base Price: ₹${d.basePrice}
+📍 City: ${d.city}
+📏 Distance: ${d.distance} km
+
+💰 Prepaid Offer: ₹${d.basePrice} – ₹${d._computed.prepaidDiscount} discount = ₹${prepaidAmount}
+🚚 Estimated Delivery:
+– Prepaid: ${d.eta}
+
+💵 COD: ₹${codInfo.codBase} + COD Charges: ₹${codInfo.codCharges}
+➡ COD Advance: ₹${codInfo.advance}
+➡ Remaining on Delivery: ₹${codInfo.rest}
+🚚 Estimated Delivery:
+– COD: ${codEta}
+
+👉 Complete payment soon to confirm your order.
+
+💚 Team GamesPlanet`;
+}
+
+/* quick-buy message exact format required by you (to sales number) */
+function buildQuickBuyMsg(d){
+  // force prepaid discount rules
+  const paymentMethod = 'wa_qr';
+  const prepaidDiscount = computePrepaidDiscount(d,paymentMethod);
+  const finalPrepaidAmount = Math.max(0, Number(d.basePrice||0) - prepaidDiscount);
+  const productPart = (d.detectedProduct||'product').toString().trim().toLowerCase();
+  const variantPart = (d.variant||'').toString().trim().toLowerCase();
+  const variantText = variantPart ? (' ' + variantPart) : '';
+  const amountText = String(Math.round(finalPrepaidAmount));
+  return `i want to buy ${productPart}${variantText} with discount on full pay ${amountText} please share qr code`;
+}
+
+/* ------------------ actions / UI ------------------ */
 function convert(){
   const d = parseInput();
   const prepaid = buildPrepaidMessage(d);
   const cod = buildCodMessage(d);
-  document.getElementById("output").textContent = prepaid + "\n\n" + cod;
+  document.getElementById('output').textContent = prepaid + "\\n\\n" + cod;
 }
 
-// ---------- Senders ----------
 function sendPrepaidToCustomer(){
   const d = parseInput();
   const msg = buildPrepaidMessage(d);
   const mobile = getCustomerMobile();
-  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
-  else alert("Customer mobile number not found in input.");
+  if(mobile) waOpen(mobile.startsWith('91')?mobile:('91'+mobile), msg);
+  else alert('Customer mobile not found');
 }
-function sendPrepaidToOwn(){
-  const d = parseInput();
-  const msg = buildPrepaidMessage(d);
-  waOpen(getOwnNumber(), msg);
-}
-function sendCodToCustomer(){
-  const d = parseInput();
-  const msg = buildCodMessage(d);
-  const mobile = getCustomerMobile();
-  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
-  else alert("Customer mobile number not found in input.");
-}
-function sendCodToOwn(){
-  const d = parseInput();
-  const msg = buildCodMessage(d);
-  waOpen(getOwnNumber(), msg);
-}
+function sendPrepaidToOwn(){ const d=parseInput(); waOpen(getOwnNumber(), buildPrepaidMessage(d)); }
+function sendCodToCustomer(){ const d=parseInput(); waOpen(getCustomerMobile().startsWith('91')?getCustomerMobile():('91'+getCustomerMobile()), buildCodMessage(d)); }
+function sendCodToOwn(){ const d=parseInput(); waOpen(getOwnNumber(), buildCodMessage(d)); }
 
-// ---------- Optional extras (unchanged) ----------
-function sendThanks() {
+function sendThanks(){
   const d = parseInput();
-  const msg =
-`🌟 GamesPlanet
+  const msg = `🌟 GamesPlanet
 🙏 Hello ${d.name} ji, thank you for your order ${d.orderId}.
 📦 Product: ${d.detectedProduct} (${d.variant})
 📍 Pincode: ${d.pincode} | 📏 Distance: ${d.distance} km
@@ -350,50 +377,40 @@ function sendThanks() {
 🖼️ On request, we can send *parcel pic & tracking number* here on WhatsApp.
 💚 Team GamesPlanet`;
   const mobile = getCustomerMobile();
-  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
-  else alert("Customer mobile number not found in input.");
+  if(mobile) waOpen(mobile.startsWith('91')?mobile:('91'+mobile), msg);
+  else alert('Customer mobile not found');
 }
-function sendAbandonedCart() {
+
+/* send Abandoned Cart: 1) send detailed msg to customer (if found), 2) open quick-buy msg to sales number */
+function sendAbandonedCart(){
   const d = parseInput();
-  const base = parseInt(d.basePrice || "0",10);
-  const discount = parseInt(d.discount || "0",10);
-  // ensure computed values are set
-  const paymentMethod = /wa[_\s-]?qr|whatsapp\s*qr|whatsappqr/.test(document.getElementById('input').value.toLowerCase()) ? 'wa_qr' : 'other';
-  d._computed = d._computed || {};
-  d._computed.prepaidDiscount = computePrepaidDiscount(d, paymentMethod);
-  const prepaidAmount = Math.max(base - d._computed.prepaidDiscount, 0);
-  const codInfo = computeCodAmountsForProduct(d);
-  const codAdvance = codInfo.advance;
-  const codRemaining = codInfo.rest;
-  const codEta = d.eta && d.eta !== "N/A" ? bumpEtaRangeString(d.eta, 2, 3) : d.eta;
+  const custMobile = getCustomerMobile();
+  const custMsg = buildAbandonedCartCustomerMsg(d);
 
-  const msg =
-`🌟 GamesPlanet
+  // send detailed message to customer (if mobile found)
+  if(custMobile){
+    waOpen(custMobile.startsWith('91')?custMobile:('91'+custMobile), custMsg);
+  } else {
+    alert('Customer mobile not found — detailed message not sent to customer.');
+  }
 
-🙏 Hello ${d.name} ji,
+  // send quick-buy message to sales number (always)
+  const quick = buildQuickBuyMsg(d);
+  const salesNumber = '917983624797';
+  // open to sales
+  waOpen(salesNumber, quick);
 
-📝 Incomplete Order Details:
-– Order ID: ${d.orderId}
-– Product: ${d.detectedProduct} (${d.variant})
-– Base Price: ₹${base}
-📍 City: ${d.city}
-📏 Distance: ${d.distance} km
+  // also show both messages in preview
+  document.getElementById('output').textContent = custMsg + "\\n\\n" + "Quick-buy sent to sales: " + quick;
+}
 
-💰 Prepaid Offer: ₹${base} – ₹${d._computed.prepaidDiscount} discount = ₹${prepaidAmount}
-🚚 Estimated Delivery:
-– Prepaid: ${d.eta}
-
-💵 COD: ₹${base} + COD Charges: ₹${codInfo.codCharges}
-➡ COD Advance: ₹${codAdvance}
-➡ Remaining on Delivery: ₹${codRemaining}
-🚚 Estimated Delivery:
-– COD: ${codEta}
-
-👉 Complete payment soon to confirm your order.
-💚 Team GamesPlanet`;
-  const mobile = getCustomerMobile();
-  if(mobile) waOpen(mobile.startsWith("91") ? mobile : "91"+mobile, msg);
-  else alert("Customer mobile number not found in input.");
+/* Quick Buy directly to sales (single action) */
+function quickBuyToSales(){
+  const d = parseInput();
+  const quick = buildQuickBuyMsg(d);
+  const salesNumber = '917983624797';
+  waOpen(salesNumber, quick);
+  document.getElementById('output').textContent = quick;
 }
 
 </script>
