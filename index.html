@@ -106,8 +106,8 @@ function computeCodAmountsForProduct(d){
   if(prod.indexOf('m88') !== -1) base = 7499;
 
   const codCharges = computeCodCharges(base);
-  // For M88 user requested exactly 10% advance (rounding to nearest 1 rupee, using Math.round)
-  const advance = Math.round(base * 0.10);
+  // Advance: minimum ₹500 OR 10% of base (whichever is higher)
+  const advance = Math.max(500, Math.round(base * 0.10));
   const rest = Math.max(0, (base + codCharges) - advance);
   return { advance, rest, codCharges, codBase: base };
 }
@@ -117,7 +117,6 @@ function computePrepaidDiscount(d, paymentMethod){
   if(!base || base <= 0) return 0;
   if(paymentMethod !== 'wa_qr') {
     // No prepaid discount unless full QR payment
-    // But M88 prepaid is special: fixed 6699 if prepaid regardless of paymentMethod? user asked for prepaid price 6699 — we'll apply only if paymentMethod === 'wa_qr'
     return 0;
   }
 
@@ -131,9 +130,9 @@ function computePrepaidDiscount(d, paymentMethod){
     return base > 6699 ? base - 6699 : Math.max(0, base - 6699);
   }
 
-  // FMCB / PS2 + usb/hdd/pd/ssd/combo => 5%
+  // FMCB / PS2 + usb/hdd/pd/ssd/combo/pendrive/500gb => 5%
   if( (prod.indexOf('fmcb') !== -1 || prod.indexOf('ps2') !== -1)
-      && containsAny(variant + ' ' + notes, ['usb','hdd','pd','ssd','combo']) ){
+      && containsAny(variant + ' ' + notes, ['usb','hdd','pd','ssd','combo','pendrive','500gb']) ){
     return Math.round(base * 0.05);
   }
 
