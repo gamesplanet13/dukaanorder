@@ -1,12 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>GamesPlanet — Final Patched (ETA / Distance / Abandon fix)</title>
+  <title>GamesPlanet — No Quick-Buy Link</title>
   <style>
     body{font-family:Arial, Helvetica, sans-serif; max-width:1000px; margin:18px auto; padding:12px;}
-    textarea{width:100%;height:280px;padding:10px;font-size:14px;box-sizing:border-box;border-radius:6px;border:1px solid #ddd;}
+    textarea{width:100%;height:300px;padding:10px;font-size:14px;box-sizing:border-box;border-radius:6px;border:1px solid #ddd;}
     pre{background:#f6f7f9;padding:12px;border-radius:8px;border:1px solid #e6e6e6;white-space:pre-wrap;font-size:14px;}
     button{padding:8px 12px;margin:6px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;}
     .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
@@ -15,9 +15,9 @@
 </head>
 <body>
 
-<h2>GamesPlanet — Final Patched (ETA/Distance + Abandon Link)</h2>
+<h2>GamesPlanet — Abandoned Cart (No Quick-Buy Link)</h2>
 
-<textarea id="input" placeholder="Paste raw order text here... (include Mobile: 9876543210 or +91 9876543210)"></textarea>
+<textarea id="input" placeholder="Paste raw order text here... (include Mobile: 9876543210 or +91 9876543210)."></textarea>
 
 <div class="row">
   <button onclick="selectAll()">Select All</button>
@@ -35,22 +35,21 @@
 
 <div class="row">
   <button onclick="sendThanks()">Send Thanks</button>
-  <button onclick="sendAbandonedCart()">Send Abandoned Cart (detailed → customer + quick-link to same customer)</button>
-  <button onclick="quickBuyToSales()">Quick Buy → Sales (test)</button>
+  <button onclick="sendAbandonedCart()">Send Abandoned Cart (detailed → customer only)</button>
 </div>
 
 <div class="hr"></div>
 <pre id="output"></pre>
 
 <script>
-/* ---------------- load pincode data (if available) ---------------- */
+/* ================= load pincode data (optional) ================= */
 let pincodeLatLng = {};
 fetch('pincode_data.json')
   .then(r => r.json())
   .then(d => { pincodeLatLng = d; })
-  .catch(()=>{ /* ok if not present */ });
+  .catch(()=>{ /* OK if missing */ });
 
-/* ---------------- original product/variant lists (restored) -------------- */
+/* ================ Product tokens (restored/expanded) ================ */
 const products = [
   "Super Mini U Box MD 16bit Sega ","aoko game stick","Aoko Game Stick","AOKO GAME STICK","aoko game stick v1","Aoko Game Stick V1","AOKO GAME STICK V1",
   "black hawk","Black Hawk","BLACK HAWK","black hawk v1","Black Hawk V1","BLACK HAWK V1",
@@ -62,37 +61,61 @@ const products = [
   "ps2","ps3","psp","xbox","xbox 360","xbox one","xbox series x",
   "sd card","sdcard","tf card","micro sd","memory card","64gb","128gb","256gb","500gb","1tb",
   "gameboy","retro console","retro gaming","gamebox","game box","gamebox g10",
-  "usb","pendrive","pendrive combo","combo","usb combo","usb hdd","usb ssd","hdd","ssd","pd"
+  "usb","pendrive","pendrive combo","combo","usb combo","usb hdd","usb ssd","hdd","ssd","pd","pd usb","pd charger","pd power","pd cable","pd pd",
+  "fmcb for ps2 opl","ps2 fmcb","usb combo pack","usb ssd combo","pendrive 64gb","pendrive 128gb"
 ];
-// Note: list restored to include many variants (case-insensitive matching later)
 
-/* ---------------- basic helpers ---------------- */
+/* ================= basic UI helpers ================= */
 function selectAll(){ const t=document.getElementById('input'); t.focus(); t.select(); }
-function clearText(){ document.getElementById('input').value=''; document.getElementById('output').textContent='';}
+function clearText(){ document.getElementById('input').value=''; document.getElementById('output').textContent=''; }
 function copyAll(){ navigator.clipboard.writeText(document.getElementById('output').textContent).then(()=>alert('Copied!')).catch(()=>alert('Copy failed')); }
 function encodeForWA(t){ return encodeURIComponent(t); }
 function waOpen(number, msg){ window.open(`https://wa.me/${number}?text=${encodeForWA(msg)}`, '_blank'); }
-const SALES_NUMBER = '917983624797'; // sales with country code
-const SALES_NUMBER_RAW = '7983624797'; // raw sales (no country code) for display
 
-/* Robust customer mobile extraction */
-function getCustomerMobile() {
-  const raw = (document.getElementById('input').value || '').toString();
-  // Try explicit label line first
+/* Sales number constant (kept for internal use only) */
+const SALES_NUMBER = '917983624797';
+
+/* ================== Robust mobile extraction (primary + alt) ================== */
+function getCustomerMobileFromRaw(raw){
+  if(!raw) return '';
+  // first, explicit labeled mobile lines
   let m = raw.match(/(?:^|\n)\s*(?:mobile|phone|mobl|mob)[:\s]*([+\d\-\s()]{6,})/i)?.[1];
-  if (m) {
+  if(m){
     m = m.replace(/\D/g,'').replace(/^0+/,'');
-    if (m.length === 12 && m.startsWith('91')) return m; // 91XXXXXXXXXX
-    if (m.length === 10) return m; // XXXXXXXXXX
-    if (m.length > 10) return m.slice(-10);
+    if(m.length === 12 && m.startsWith('91')) return m;
+    if(m.length === 10) return m;
+    if(m.length > 10) return m.slice(-10);
   }
-  // fallback - any 10-digit occurrence
+  // fallback: any 10-digit group
   const any = raw.match(/(?:\+?91[-\s]?)?(\d{10})/);
-  if (any && any[1]) return any[1];
+  if(any && any[1]) return any[1];
   return '';
 }
 
-/* ---------- haversine & ETA helpers ---------- */
+function extractAltMobile(raw, primary){
+  // 1) try labeled alternate patterns
+  let altMatch = raw.match(/(?:^|\n)\s*(?:alt(?:ernate)?(?: mobile| number)?|other mobile|alt\. mobile|alt mobile|alternate number|altno|alt no|alternate mobile number)[:\s]*([+\d\-\s()]{6,})/i);
+  if(altMatch && altMatch[1]){
+    let a = altMatch[1].replace(/\D/g,'').replace(/^0+/,'');
+    if(a.length === 12 && a.startsWith('91')) return a;
+    if(a.length === 10) return a;
+    if(a.length > 10) return a.slice(-10);
+  }
+  // 2) fallback: choose last 10-digit not equal to primary
+  const all = [];
+  const re = /(?:\+?91[-\s]?)?(\d{10})/g;
+  let mm;
+  while((mm = re.exec(raw)) !== null){
+    all.push(mm[1]);
+  }
+  if(all.length === 0) return '';
+  const primaryNorm = (primary||'').toString().replace(/\D/g,'').replace(/^0+/,'');
+  const candidates = all.filter(n => n !== primaryNorm);
+  if(candidates.length) return candidates[candidates.length - 1];
+  return '';
+}
+
+/* ================= haversine & ETA helpers ================= */
 function haversine(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI/180;
@@ -101,6 +124,7 @@ function haversine(lat1, lon1, lat2, lon2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return R*c;
 }
+
 function estimateDeliveryByDistance(distance) {
   const d = Number(distance);
   if (isNaN(d)) return "N/A";
@@ -115,6 +139,7 @@ function estimateDeliveryByDistance(distance) {
   if (d <= 3000) return "6–10 days";
   return "8–12 days (sometimes up to 15 days)";
 }
+
 function parseEtaRange(etaStr){
   if(!etaStr || etaStr === "N/A") return null;
   const nums = (etaStr.match(/\d+/g)||[]).map(n=>parseInt(n,10));
@@ -137,49 +162,42 @@ function estimatedWindowFromEta(etaStr){
   return (r.min===r.max) ? `${start}` : `${start} to ${end}`;
 }
 
-/* ---------------- Business rules (COD / Prepaid discounts) --------------- */
-/* COD charges rule: base >0 && <1499 => 99; else 0 */
+/* ================= Business rules: COD & Prepaid discounts ================= */
+
+/* COD charges rule */
 function computeCodCharges(basePrice){
-  basePrice = Number(basePrice)||0;
+  basePrice = Number(basePrice) || 0;
   if(basePrice > 0 && basePrice < 1499) return 99;
   return 0;
 }
 
-/* COD amounts (M88 special-case: COD base fixed to 7499) */
+/* COD amounts (M88 special-case) */
 function computeCodAmountsForProduct(d){
-  let base = Number(d.basePrice)||0;
+  let base = Number(d.basePrice) || 0;
   const prod = (d.detectedProduct||'').toLowerCase();
   if(prod.indexOf('m88') !== -1) base = 7499;
   const codCharges = computeCodCharges(base);
-  const advance = Math.max(500, Math.round(base * 0.10)); // min 500 or 10%
+  const advance = Math.max(500, Math.round(base * 0.10));
   const rest = Math.max(0, (base + codCharges) - advance);
   return { advance, rest, codCharges, codBase: base };
 }
 
-/* Prepaid discount rules (only when paymentMethod === 'wa_qr' — we force this for final calc)
-   - M88 prepaid final price 6699 (discount = base - 6699)
-   - FMCB/PS2 + usb/hdd/pd/ssd/combo/pendrive/500gb => 5%
-   - gamestick / sd card => fixed discounts for 64/128/256
-*/
+/* Prepaid discount rules (5% tokens, M88 special, gamestick sizes) */
 function computePrepaidDiscount(d, paymentMethod){
-  const base = Number(d.basePrice)||0;
+  const base = Number(d.basePrice) || 0;
   if(!base || base <= 0) return 0;
   if(paymentMethod !== 'wa_qr') return 0;
-  const prod = (d.detectedProduct||'').toLowerCase();
-  const variant = (d.variant||'').toLowerCase();
-  const notes = ((d.notes||'') + ' ' + (d.extra||'')).toLowerCase();
-  const containsAny = (s, arr) => arr.some(tok => s.indexOf(tok) !== -1);
+  const prod = (d.detectedProduct || '').toLowerCase();
+  const variant = (d.variant || '').toLowerCase();
+  const notes = ((d.notes || '') + ' ' + (d.extra || '')).toLowerCase();
+  const hay = prod + ' ' + variant + ' ' + notes;
 
-  if(prod.indexOf('m88') !== -1){
-    return Math.max(0, base - 6699);
-  }
+  if(prod.indexOf('m88') !== -1) return Math.max(0, base - 6699);
 
-  if( (prod.indexOf('fmcb') !== -1 || prod.indexOf('ps2') !== -1)
-      && containsAny(variant + ' ' + notes, ['usb','hdd','pd','ssd','combo','pendrive','500gb']) ){
-    return Math.round(base * 0.05);
-  }
+  const fivePercentTokens = ['fmcb','ps2','usb','pendrive','pd','ssd','combo','500gb'];
+  if(fivePercentTokens.some(tok => hay.indexOf(tok) !== -1)) return Math.round(base * 0.05);
 
-  if( containsAny(prod, ['gamestick','game stick','gamebox','sd card','sdcard']) || containsAny(variant, ['64','128','256']) ){
+  if(/gamestick|game stick|gamebox|sd card|sdcard|sd-card/.test(hay) || /64\b|128\b|256\b/.test(variant + ' ' + prod)){
     if(variant.indexOf('64') !== -1 || prod.indexOf('64gb') !== -1) return 200;
     if(variant.indexOf('128') !== -1 || prod.indexOf('128gb') !== -1) return 300;
     if(variant.indexOf('256') !== -1 || prod.indexOf('256gb') !== -1) return 500;
@@ -189,10 +207,10 @@ function computePrepaidDiscount(d, paymentMethod){
   return 0;
 }
 
-/* ---------------------- Parsing input ---------------------- */
+/* ================= Parsing input ================= */
 function parseInput(){
   const raw = document.getElementById('input').value || '';
-  const inputLower = raw.toLowerCase();
+  const lower = raw.toLowerCase();
 
   // order id
   let orderId = raw.match(/#\s*\d{5,}/)?.[0] || '';
@@ -203,13 +221,19 @@ function parseInput(){
   }
   if(!orderId) orderId = 'Not found';
 
-  // name / mobile / alt / email
+  // name
   const name = (raw.match(/name\s*[:\n]\s*([^\n]+)/i)?.[1] || 'Customer').trim();
-  const mobile = (raw.match(/mobile\s*[:\n]\s*([+\d\-\s]{6,})/i)?.[1] || raw.match(/(?:\+?91[-\s]?)?\d{10}/)?.[0] || '').trim();
-  const altMobile = (raw.match(/alt(?:ernate)?\s*mobile\s*[:\n]\s*([^\n]+)/i)?.[1] || '').trim();
+
+  // primary mobile raw
+  const mobileRaw = (raw.match(/mobile\s*[:\n]\s*([+\d\-\s()]{6,})/i)?.[1] || raw.match(/(?:\+?91[-\s]?)?\d{10}/)?.[0] || '').trim();
+
+  // alt mobile
+  let altMobile = extractAltMobile(raw, mobileRaw);
+
+  // email
   const email = (raw.match(/email\s*[:\n]\s*([^\n]+)/i)?.[1] || '').trim();
 
-  // address block
+  // address
   const address = (raw.match(/shipping\s*address\s*[:\n]\s*([\s\S]*?)(?:\n(?:Payments|Payment|Additional|Customer|Mobile|Email|$))/i)?.[1] ||
                    raw.match(/address\s*[:\n]\s*([^\n]+)/i)?.[1] || '').trim().replace(/\s+/g,' ');
 
@@ -228,7 +252,7 @@ function parseInput(){
   let discount = '0';
   const couponLine = raw.match(/coupon\s*discount.*?(-₹\s*[\d,]+)/i);
   if(couponLine) discount = couponLine[1].replace(/[^\d]/g,'');
-  else {
+  else{
     const d2 = raw.match(/discount\s*applied\s*[:₹\s-]*([\d,]+)/i);
     if(d2) discount = d2[1].replace(/,/g,'');
   }
@@ -237,13 +261,11 @@ function parseInput(){
                        raw.match(/\bpaid\b\s*[:₹\s]*([\d,]+)/i)?.[1] ||
                        raw.match(/amount\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] || '0').replace(/,/g,'')).trim();
 
-  // detect product: prefer explicit "1 item\n<name>" style; else scan product list
+  // detect product
   let detectedProduct = 'Unknown Product';
-  const afterItemLine = raw.split(/1\s*item/i)[1]?.trim().split('\n')[0]?.trim();
-  if(afterItemLine && afterItemLine.length > 2) detectedProduct = afterItemLine;
+  const afterItem = raw.split(/1\s*item/i)[1]?.trim().split('\n')[0]?.trim();
+  if(afterItem && afterItem.length>2) detectedProduct = afterItem;
   if(detectedProduct === 'Unknown Product'){
-    const lower = inputLower;
-    // sort by length to prefer long matches
     for(const p of products.sort((a,b)=>b.length - a.length)){
       if(lower.includes(p.toLowerCase())) { detectedProduct = p; break; }
     }
@@ -258,18 +280,24 @@ function parseInput(){
     if(vInName) variant = vInName[1].toUpperCase();
   }
 
-  // ETA/distance via pincode if available
+  // ETA/distance via pincode
   let city = 'Unknown', state = 'Unknown', distance = 'N/A', eta = 'N/A';
   if(pincode && pincodeLatLng[pincode]){
     const dest = pincodeLatLng[pincode];
     city = dest.city || 'Unknown';
     state = dest.state || 'Unknown';
-    distance = haversine(28.8,79.0,dest.lat,dest.lng).toFixed(0); // origin approx (Rampur) same as original
+    distance = haversine(28.8,79.0,dest.lat,dest.lng).toFixed(0);
     eta = estimateDeliveryByDistance(distance);
   }
 
+  // normalize mobile display
+  let mobileDisplay = mobileRaw;
+  if(mobileDisplay && mobileDisplay.indexOf('+') === -1 && !mobileDisplay.startsWith('0') && mobileDisplay.length === 10) {
+    mobileDisplay = '+91-' + mobileDisplay;
+  }
+
   return {
-    orderId, name, mobile, altMobile, email,
+    orderId, name, mobile: mobileDisplay, mobileRaw, altMobile, email,
     address, landmark, postOffice, pincode,
     basePrice, discount, amountPaid,
     detectedProduct, variant,
@@ -277,10 +305,9 @@ function parseInput(){
   };
 }
 
-/* -------------------- Message builders (include ETA/distance) -------------------- */
+/* ================== Message builders ================== */
 function buildPrepaidMessage(d){
   const estWindow = d.eta && d.eta !== "N/A" ? estimatedWindowFromEta(d.eta) : "";
-  // force prepaid discount rules
   const paymentMethod = 'wa_qr';
   const prepaidDiscount = computePrepaidDiscount(d, paymentMethod);
   const prepaidAmount = Math.max(0, Number(d.basePrice||0) - prepaidDiscount);
@@ -292,15 +319,15 @@ function buildPrepaidMessage(d){
 
 Order ID: ${d.orderId}
 Name: ${d.name}
-Mobile: ${d.mobile}
-Alt Mobile: ${d.altMobile}
-Email: ${d.email}
-Address: ${d.address}
-Landmark: ${d.landmark}
-Pincode: ${d.pincode}
-State: ${d.state}
-District/City: ${d.city}
-Post office: ${d.postOffice}
+Mobile: ${d.mobile || ''}
+Alt Mobile: ${d.altMobile || ''}
+Email: ${d.email || ''}
+Address: ${d.address || ''}
+Landmark: ${d.landmark || ''}
+Pincode: ${d.pincode || ''}
+State: ${d.state || ''}
+District/City: ${d.city || ''}
+Post office: ${d.postOffice || ''}
 Product: ${d.detectedProduct}
 Variant: ${d.variant}
 Base Price: ₹${d.basePrice}
@@ -327,15 +354,15 @@ function buildCodMessage(d){
 
 Order ID: ${d.orderId}
 Name: ${d.name}
-Mobile: ${d.mobile}
-Alt Mobile: ${d.altMobile}
-Email: ${d.email}
-Address: ${d.address}
-Landmark: ${d.landmark}
-Pincode: ${d.pincode}
-State: ${d.state}
-District/City: ${d.city}
-Post office: ${d.postOffice}
+Mobile: ${d.mobile || ''}
+Alt Mobile: ${d.altMobile || ''}
+Email: ${d.email || ''}
+Address: ${d.address || ''}
+Landmark: ${d.landmark || ''}
+Pincode: ${d.pincode || ''}
+State: ${d.state || ''}
+District/City: ${d.city || ''}
+Post office: ${d.postOffice || ''}
 Product: ${d.detectedProduct}
 Variant: ${d.variant}
 Base Price: ₹${d._computed.codBase}
@@ -348,7 +375,7 @@ Rest on Delivery: ₹${d._computed.codRestOnDelivery}
 📅 Estimated Delivery: ${estCodWindow}`;
 }
 
-/* Abandoned-cart: detailed message to customer */
+/* Abandoned-cart detailed message (customer only) */
 function buildAbandonedCartCustomerMsg(d){
   d._computed = d._computed || {};
   const paymentMethod = 'wa_qr';
@@ -382,19 +409,7 @@ function buildAbandonedCartCustomerMsg(d){
 💚 Team GamesPlanet`;
 }
 
-/* Quick-buy exact text for sales link (lowercase, exact format) */
-function buildQuickBuyMsg(d){
-  const paymentMethod = 'wa_qr';
-  const prepaidDiscount = computePrepaidDiscount(d, paymentMethod);
-  const finalPrepaidAmount = Math.max(0, Number(d.basePrice||0) - prepaidDiscount);
-  const productPart = (d.detectedProduct||'product').toString().trim().toLowerCase();
-  const variantPart = (d.variant||'').toString().trim().toLowerCase();
-  const variantText = variantPart ? (' ' + variantPart) : '';
-  const amountText = String(Math.round(finalPrepaidAmount));
-  return `i want to buy ${productPart}${variantText} with discount on full pay ${amountText} please share qr code`;
-}
-
-/* -------------------- Actions / Senders -------------------- */
+/* ================= Actions / Senders ================= */
 function convert(){
   const d = parseInput();
   const prepaid = buildPrepaidMessage(d);
@@ -402,24 +417,26 @@ function convert(){
   document.getElementById('output').textContent = prepaid + "\n\n" + cod;
 }
 
-/* Safe senders to customer (normalize number to 91XXXXXXXXXX) */
+/* Safe senders to customer (normalize to 91XXXXXXXXXX) */
 function sendPrepaidToCustomer(){
   const d = parseInput();
   const msg = buildPrepaidMessage(d);
-  const raw = getCustomerMobile();
-  if(!raw){ alert('Customer mobile not found in input. Include Mobile: 9876543210 or +91 9876543210.'); return; }
-  const to = raw.startsWith('91') ? raw : ('91' + raw);
-  waOpen(to, msg);
+  const raw = d.mobileRaw || '';
+  if(!raw){ alert('Customer mobile not found. Include Mobile: 9876543210 or +91 9876543210 in input.'); return; }
+  const to = raw.replace(/\D/g,'').replace(/^0+/,'');
+  const to91 = to.startsWith('91') ? to : ('91' + to);
+  waOpen(to91, msg);
 }
 function sendPrepaidToOwn(){ const d = parseInput(); waOpen(SALES_NUMBER, buildPrepaidMessage(d)); }
 
 function sendCodToCustomer(){
   const d = parseInput();
   const msg = buildCodMessage(d);
-  const raw = getCustomerMobile();
-  if(!raw){ alert('Customer mobile not found in input.'); return; }
-  const to = raw.startsWith('91') ? raw : ('91' + raw);
-  waOpen(to, msg);
+  const raw = d.mobileRaw || '';
+  if(!raw){ alert('Customer mobile not found.'); return; }
+  const to = raw.replace(/\D/g,'').replace(/^0+/,'');
+  const to91 = to.startsWith('91') ? to : ('91' + to);
+  waOpen(to91, msg);
 }
 function sendCodToOwn(){ const d = parseInput(); waOpen(SALES_NUMBER, buildCodMessage(d)); }
 
@@ -434,46 +451,36 @@ function sendThanks(){
 🔗 Tracking will update on our website after dispatch.
 🖼️ On request, we can send *parcel pic & tracking number* here on WhatsApp.
 💚 Team GamesPlanet`;
-  const raw = getCustomerMobile();
+  const raw = d.mobileRaw || '';
   if(!raw){ alert('Customer mobile not found.'); return; }
-  const to = raw.startsWith('91') ? raw : ('91' + raw);
-  waOpen(to, msg);
+  const to = raw.replace(/\D/g,'').replace(/^0+/,'');
+  const to91 = to.startsWith('91') ? to : ('91' + to);
+  waOpen(to91, msg);
 }
 
-/* ------------------ Abandoned Cart (updated behaviour) ------------------
-   1) Detailed message is sent to CUSTOMER (if found)
-   2) Second message is also sent to CUSTOMER and contains a wa.me link pointing to SALES_NUMBER
-      (clicking that link opens chat to sales with the prefilled quick-buy message)
-------------------------------------------------------------------------- */
+/* ================= Abandoned Cart (NO quick-buy link) =================
+   Sends ONLY the detailed abandoned-cart message to customer (if found).
+   No second message, no sales link. Preview shown in output.
+======================================================================= */
 function sendAbandonedCart(){
   const d = parseInput();
-  const custRaw = getCustomerMobile();
+  const raw = d.mobileRaw || '';
   const custMsg = buildAbandonedCartCustomerMsg(d);
-  const quick = buildQuickBuyMsg(d);
-  const salesLink = `https://wa.me/${SALES_NUMBER}?text=${encodeURIComponent(quick)}`;
-  const secondMsg = `Fast checkout link: ${salesLink}\n\n(Click to open QR payment on WhatsApp)`;
 
-  if(custRaw){
-    const cust = custRaw.startsWith('91') ? custRaw : ('91' + custRaw);
-    // 1) send detailed message
-    waOpen(cust, custMsg);
-    // 2) send second message containing clickable sales link (after a short delay to avoid single-popup issues)
-    setTimeout(()=> waOpen(cust, secondMsg), 800);
-    // preview both in output
-    document.getElementById('output').textContent = custMsg + "\n\nQuick-checkout link (sent to customer): " + salesLink;
+  if(raw){
+    const to = raw.replace(/\D/g,'').replace(/^0+/,'');
+    const to91 = to.startsWith('91') ? to : ('91' + to);
+    // send only detailed message to customer
+    waOpen(to91, custMsg);
+    // preview
+    document.getElementById('output').textContent = custMsg;
   } else {
-    alert('Customer mobile not found — cannot send abandoned-cart to customer. Quick-link is shown for manual share.');
-    document.getElementById('output').textContent = "Customer mobile not found.\nQuick-link: " + salesLink + "\n\nQuick-buy message: " + quick;
+    alert('Customer mobile not found — cannot send abandoned-cart to customer.');
+    document.getElementById('output').textContent = "Customer mobile not found.\nPreview:\n\n" + custMsg;
   }
 }
 
-/* Quick Buy direct to sales (for testing/manual) */
-function quickBuyToSales(){
-  const d = parseInput();
-  const quick = buildQuickBuyMsg(d);
-  waOpen(SALES_NUMBER, quick);
-  document.getElementById('output').textContent = quick;
-}
 </script>
+
 </body>
 </html>
