@@ -82,6 +82,7 @@ function getCustomerMobileFromRaw(raw){
   let m = raw.match(/(?:^|\n)\s*(?:mobile|phone|mobl|mob)[:\s]*([+\d\-\s()]{6,})/i)?.[1];
   if(m){
     m = m.replace(/\D/g,'').replace(/^0+/,'');
+
     if(m.length === 12 && m.startsWith('91')) return m;
     if(m.length === 10) return m;
     if(m.length > 10) return m.slice(-10);
@@ -97,6 +98,7 @@ function extractAltMobile(raw, primary){
   let altMatch = raw.match(/(?:^|\n)\s*(?:alt(?:ernate)?(?: mobile| number)?|other mobile|alt\. mobile|alt mobile|alternate number|altno|alt no|alternate mobile number)[:\s]*([+\d\-\s()]{6,})/i);
   if(altMatch && altMatch[1]){
     let a = altMatch[1].replace(/\D/g,'').replace(/^0+/,'');
+
     if(a.length === 12 && a.startsWith('91')) return a;
     if(a.length === 10) return a;
     if(a.length > 10) return a.slice(-10);
@@ -110,6 +112,7 @@ function extractAltMobile(raw, primary){
   }
   if(all.length === 0) return '';
   const primaryNorm = (primary||'').toString().replace(/\D/g,'').replace(/^0+/,'');
+
   const candidates = all.filter(n => n !== primaryNorm);
   if(candidates.length) return candidates[candidates.length - 1];
   return '';
@@ -260,37 +263,40 @@ function parseInput(){
   const amountPaid = ((raw.match(/total\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] ||
                        raw.match(/\bpaid\b\s*[:₹\s]*([\d,]+)/i)?.[1] ||
                        raw.match(/amount\s*paid\s*[:₹\s]*([\d,]+)/i)?.[1] || '0').replace(/,/g,'')).trim();
-/* ================= MULTI-PRODUCT SUPPORT ADDED ================= */
-let productItems = [];
-{
-  const lines = raw.split(/\n+/);
-  let i = 0;
 
-  while(i < lines.length){
-    const line = lines[i].trim();
-    const qtyLine = (lines[i+1] || '').trim();
-    const priceLine = (lines[i+2] || '').trim();
-
-    if(
-      line.length > 2 &&
-      qtyLine.match(/^\d+x\s*₹?/i) &&
-      priceLine.match(/₹/)
-    ){
-      const qty = qtyLine.match(/(\d+)x/)?.[1] || '1';
-      const price = priceLine.replace(/[^0-9]/g,'');
-      productItems.push({ name: line, qty, price });
-      i += 3;
-      continue;
-    }
-    i++;
-  }
-}
-
-if(productItems.length > 0){
-  detectedProduct = productItems.map(p => `${p.name} x${p.qty}`).join(' + ');
-}
   // detect product
   let detectedProduct = 'Unknown Product';
+
+  /* ================= MULTI-PRODUCT SUPPORT ADDED ================= */
+  let productItems = [];
+  {
+    const lines = raw.split(/\n+/);
+    let i = 0;
+
+    while(i < lines.length){
+      const line = lines[i].trim();
+      const qtyLine = (lines[i+1] || '').trim();
+      const priceLine = (lines[i+2] || '').trim();
+
+      if(
+        line.length > 2 &&
+        qtyLine.match(/^\d+x\s*₹?/i) &&
+        priceLine.match(/₹/)
+      ){
+        const qty = qtyLine.match(/(\d+)x/)?.[1] || '1';
+        const price = priceLine.replace(/[^0-9]/g,'');
+        productItems.push({ name: line, qty, price });
+        i += 3;
+        continue;
+      }
+      i++;
+    }
+  }
+
+  if(productItems.length > 0){
+    detectedProduct = productItems.map(p => `${p.name} x${p.qty}`).join(' + ');
+  }
+
   const afterItem = raw.split(/1\s*item/i)[1]?.trim().split('\n')[0]?.trim();
   if(afterItem && afterItem.length>2) detectedProduct = afterItem;
   if(detectedProduct === 'Unknown Product'){
