@@ -348,7 +348,9 @@ const basePrice = (
 function buildPrepaidMessage(d){
   const estWindow = d.eta && d.eta !== "N/A" ? estimatedWindowFromEta(d.eta) : "";
   const paymentMethod = 'wa_qr';
-  const prepaidDiscount = computePrepaidDiscount(d, paymentMethod);
+  // discount only if input has discount
+let fixedDiscount = d.discount && d.discount !== "0" ? Number(d.discount) : 0;
+const prepaidDiscount = fixedDiscount;
   const prepaidAmount = Math.max(0, Number(d.basePrice||0) - prepaidDiscount);
   d._computed = d._computed || {};
   d._computed.prepaidDiscount = prepaidDiscount;
