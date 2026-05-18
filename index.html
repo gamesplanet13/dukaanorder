@@ -210,6 +210,99 @@ function computePrepaidDiscount(d, paymentMethod){
   return 0;
 }
 
+
+/* ================= PS2 PREFILLED PRICE LOGIC ================= */
+function applyPs2Pricing(d){
+  const text = ((d.detectedProduct || '') + ' ' + (d.variant || '')).toLowerCase();
+
+  const usbPrices = {
+    '64gb pd 2.0': {top:1200, optional:1250},
+    '64gb pd 3.0': {top:1600, optional:1650},
+    '128gb pd 3.0': {top:2850, optional:2950},
+    '128gb ssd': {top:3800, optional:3900},
+    '256gb ssd': {top:5300, optional:5500},
+    '500gb hdd': {top:7100, optional:7500},
+    '500gb ssd': {top:11100, optional:11500}
+  };
+
+  const comboPrices = {
+    '64gb pd 2.0': {top:1799, optional:1849},
+    '64gb pd 3.0': {top:2199, optional:2249},
+    '128gb pd 3.0': {top:3449, optional:3549},
+    '128gb ssd': {top:4399, optional:4499},
+    '256gb ssd': {top:5899, optional:6099},
+    '500gb hdd': {top:7699, optional:8099},
+    '500gb ssd': {top:11699, optional:12099}
+  };
+
+  const isCombo = /fmcb\s*\+\s*usb|combo/.test(text);
+  const isFmcb = /fmcb|funtuna/.test(text);
+
+  let packType = 'top';
+  if(/optional/.test(text)) packType = 'optional';
+  if(/top games/.test(text)) packType = 'top';
+
+  // Detect storage
+  let storageKey = '';
+
+  if(/64gb/.test(text)){
+    if(/3\.0/.test(text)){
+      storageKey = '64gb pd 3.0';
+    } else {
+      storageKey = '64gb pd 2.0';
+    }
+  }
+
+  if(/128gb/.test(text)){
+    if(/ssd/.test(text)){
+      storageKey = '128gb ssd';
+    } else {
+      storageKey = '128gb pd 3.0';
+    }
+  }
+
+  if(/256gb/.test(text)){
+    storageKey = '256gb ssd';
+  }
+
+  if(/500gb/.test(text)){
+    if(/ssd/.test(text)){
+      storageKey = '500gb ssd';
+    } else {
+      storageKey = '500gb hdd';
+    }
+  }
+
+  // FMCB / FunTuna only
+  if(isFmcb && !storageKey && !isCombo){
+    d.basePrice = '699';
+
+    if(/90xxx|9xxxx|9\d{4}/.test(text)){
+      d.variant = 'PS2 Slim 9xxxx FunTuna';
+    }
+    else if(/70xxx|7xxxx|7\d{4}/.test(text)){
+      d.variant = 'PS2 Slim 7xxxx FMCB';
+    }
+    else if(/fat/.test(text)){
+      d.variant = 'PS2 Fat FMCB';
+    }
+  }
+
+  // Combo pricing
+  if((isCombo || (/fmcb/.test(text) && storageKey)) && storageKey){
+    d.basePrice = String(comboPrices[storageKey][packType]);
+    return d;
+  }
+
+  // USB only pricing
+  if(!isCombo && storageKey){
+    d.basePrice = String(usbPrices[storageKey][packType]);
+  }
+
+  return d;
+}
+
+
 /* ================= Parsing input ================= */
 function parseInput(){
   const raw = document.getElementById('input').value || '';
@@ -335,13 +428,17 @@ const basePrice = (
     mobileDisplay = '+91-' + mobileDisplay;
   }
 
-  return {
+  let parsedData = {
     orderId, name, mobile: mobileDisplay, mobileRaw, altMobile, email,
     address, landmark, postOffice, pincode,
     basePrice, discount, amountPaid,
     detectedProduct, variant,
     city, state, distance, eta
   };
+
+  parsedData = applyPs2Pricing(parsedData);
+
+  return parsedData;
 }
 
 /* ================== Message builders ================== */
