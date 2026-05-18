@@ -475,6 +475,13 @@ function isCodAllowed(d){
 }
 
 
+
+/* ================= GLOBAL DISCOUNT HELPER ================= */
+function getFinalDiscount(d){
+  return Number(d.discount || 0);
+}
+
+
 /* ================= Parsing input ================= */
 function parseInput(){
   const raw = document.getElementById('input').value || '';
@@ -612,6 +619,8 @@ const basePrice = (
   parsedData = applyProductPricing(parsedData);
   parsedData = applyV3Titles(parsedData);
 
+  parsedData.discount = Number(parsedData.discount || 0).toString();
+
   return parsedData;
 }
 
@@ -619,14 +628,13 @@ const basePrice = (
 function buildPrepaidMessage(d){
   const estWindow = d.eta && d.eta !== "N/A" ? estimatedWindowFromEta(d.eta) : "";
   const paymentMethod = 'wa_qr';
-  // Forced + input discount logic
-  let forcedDiscount = Number(d.discount || 0);
+  const prepaidDiscount = getFinalDiscount(d);
 
-  const prepaidDiscount =
-    forcedDiscount > 0
-      ? forcedDiscount
-      : 0;
-  const prepaidAmount = Math.max(0, Number(d.basePrice || 0) - Number(prepaidDiscount || 0));
+  const prepaidAmount = Math.max(
+    0,
+    Number(d.basePrice || 0) - prepaidDiscount
+  );
+
   d._computed = d._computed || {};
   d._computed.prepaidDiscount = prepaidDiscount;
   d._computed.prepaidAmount = prepaidAmount;
@@ -696,8 +704,8 @@ Rest on Delivery: ₹${d._computed.codRestOnDelivery}
 function buildAbandonedCartCustomerMsg(d){
   d._computed = d._computed || {};
   const paymentMethod = 'wa_qr';
-  d._computed.prepaidDiscount = computePrepaidDiscount(d, paymentMethod);
-  const prepaidAmount = Math.max(0, Number(d.basePrice||0) - d._computed.prepaidDiscount);
+  d._computed.prepaidDiscount = getFinalDiscount(d);
+  const prepaidAmount = Math.max(0, Number(d.basePrice || 0) - Number(d._computed.prepaidDiscount || 0));
   const codAllowed = isCodAllowed(d);
   let codSection = '';
 
