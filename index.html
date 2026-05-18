@@ -168,18 +168,32 @@ function estimatedWindowFromEta(etaStr){
 /* ================= Business rules: COD & Prepaid discounts ================= */
 
 /* COD charges rule */
-function computeCodCharges(basePrice){
-  basePrice = Number(basePrice) || 0;
-  if(basePrice > 0 && basePrice < 1499) return 99;
+
+function computeCodCharges(basePrice, detectedProduct=''){
+  const text = (detectedProduct || '').toLowerCase();
+
+  // FMCB / USB / Combo
+  if(/fmcb|funtuna|usb|ssd|hdd|pd|combo|pendrive/.test(text)){
+    return 99;
+  }
+
+  // Premium retro consoles
+  if(
+    /gamestick lite|pandora mini|pandora mini pro|gamestick pro|gd10|gd-10|gd20|gd-20|gd30|gd-30|m20|m22|m33|m66|m88|gs5 mini|gs5/.test(text)
+  ){
+    return 199;
+  }
+
   return 0;
 }
+
 
 /* COD amounts (M88 special-case) */
 function computeCodAmountsForProduct(d){
   let base = Number(d.basePrice) || 0;
   const prod = (d.detectedProduct||'').toLowerCase();
   if(prod.indexOf('m88') !== -1) base = 7499;
-  const codCharges = computeCodCharges(base);
+  const codCharges = computeCodCharges(base, d.detectedProduct);
   const advance = Math.max(500, Math.round(base * 0.10));
   const rest = Math.max(0, (base + codCharges) - advance);
   return { advance, rest, codCharges, codBase: base };
@@ -505,6 +519,8 @@ Product: ${d.detectedProduct}
 Variant: ${d.variant}
 Base Price: ₹${d._computed.codBase}
 COD Charges: ₹${d._computed.codCharges}
+Courier Charges (COD): ₹${d._computed.codCharges}
+Final Total: ₹${Number(d._computed.codBase) + Number(d._computed.codCharges)}
 Amount Paid (Advance): ₹${d._computed.codAdvance}
 Rest Amount on Delivery: ₹${d._computed.codRestOnDelivery}
 
