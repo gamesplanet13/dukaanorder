@@ -451,6 +451,30 @@ function applyV3Titles(d){
 }
 
 
+
+/* ================= COD ALLOWED LOGIC ================= */
+function isCodAllowed(d){
+  const text = ((d.detectedProduct || '') + ' ' + (d.variant || '')).toLowerCase();
+  const base = Number(d.basePrice || 0);
+
+  // FMCB only = NO COD
+  const isFmcbOnly =
+    /fmcb|funtuna/.test(text) &&
+    !/usb|combo|ssd|hdd|pendrive|pd|64gb|128gb|256gb|500gb/.test(text);
+
+  if(isFmcbOnly){
+    return false;
+  }
+
+  // COD only above 1300
+  if(base <= 1300){
+    return false;
+  }
+
+  return true;
+}
+
+
 /* ================= Parsing input ================= */
 function parseInput(){
   const raw = document.getElementById('input').value || '';
@@ -673,8 +697,21 @@ function buildAbandonedCartCustomerMsg(d){
   const paymentMethod = 'wa_qr';
   d._computed.prepaidDiscount = computePrepaidDiscount(d, paymentMethod);
   const prepaidAmount = Math.max(0, Number(d.basePrice||0) - d._computed.prepaidDiscount);
-  const codInfo = computeCodAmountsForProduct(d);
-  const codEta = d.eta && d.eta !== "N/A" ? bumpEtaRangeString(d.eta,2,3) : d.eta;
+  const codAllowed = isCodAllowed(d);
+  let codSection = '';
+
+  if(codAllowed){
+    const codInfo = computeCodAmountsForProduct(d);
+    const codEta = d.eta && d.eta !== "N/A" ? bumpEtaRangeString(d.eta,2,3) : d.eta;
+
+    codSection = `
+
+💵 COD: ₹${codInfo.codBase} + COD Charges: ₹${codInfo.codCharges}
+➡ Amount Paid: ₹${codInfo.advance}
+➡ Rest on Delivery: ₹${codInfo.rest}
+🚚 Estimated Delivery (COD): ${codEta}`;
+  }
+
   const estWindow = d.eta && d.eta !== "N/A" ? estimatedWindowFromEta(d.eta) : "";
 
   return `🌟 GamesPlanet
@@ -690,11 +727,7 @@ function buildAbandonedCartCustomerMsg(d){
 
 💰 Prepaid Offer: ₹${d.basePrice} – ₹${d._computed.prepaidDiscount} discount = ₹${prepaidAmount}
 🚚 Estimated Delivery (Prepaid): ${d.eta} — ${estWindow}
-
-💵 COD: ₹${codInfo.codBase} + COD Charges: ₹${codInfo.codCharges}
-➡ COD Advance: ₹${codInfo.advance}
-➡ Remaining on Delivery: ₹${codInfo.rest}
-🚚 Estimated Delivery (COD): ${codEta}
+${codSection}
 
 👉 Complete payment soon to confirm your order.
 
@@ -705,8 +738,13 @@ function buildAbandonedCartCustomerMsg(d){
 function convert(){
   const d = parseInput();
   const prepaid = buildPrepaidMessage(d);
-  const cod = buildCodMessage(d);
-  document.getElementById('output').textContent = prepaid + "\n\n" + cod;
+
+  if(isCodAllowed(d)){
+    const cod = buildCodMessage(d);
+    document.getElementById('output').textContent = prepaid + "\n\n" + cod;
+  } else {
+    document.getElementById('output').textContent = prepaid;
+  }
 }
 
 /* Safe senders to customer (normalize to 91XXXXXXXXXX) */
@@ -723,6 +761,11 @@ function sendPrepaidToOwn(){ const d = parseInput(); waOpen(SALES_NUMBER, buildP
 
 function sendCodToCustomer(){
   const d = parseInput();
+
+  if(!isCodAllowed(d)){
+    alert('COD not allowed for this product.');
+    return;
+  }
   const msg = buildCodMessage(d);
   const raw = d.mobileRaw || '';
   if(!raw){ alert('Customer mobile not found.'); return; }
@@ -730,7 +773,16 @@ function sendCodToCustomer(){
   const to91 = to.startsWith('91') ? to : ('91' + to);
   waOpen(to91, msg);
 }
-function sendCodToOwn(){ const d = parseInput(); waOpen(SALES_NUMBER, buildCodMessage(d)); }
+function sendCodToOwn(){
+  const d = parseInput();
+
+  if(!isCodAllowed(d)){
+    alert('COD not allowed for this product.');
+    return;
+  }
+
+  waOpen(SALES_NUMBER, buildCodMessage(d));
+}
 
 function sendThanks(){
   const d = parseInput();
