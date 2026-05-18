@@ -417,6 +417,40 @@ function applyProductPricing(d){
 }
 
 
+
+/* ================= FORCE V3 PRODUCT TITLES ================= */
+function applyV3Titles(d){
+  let title = d.detectedProduct || '';
+  const lower = title.toLowerCase();
+
+  const mappings = [
+    ['gd10','GD10 V3'],
+    ['gd-10','GD10 V3'],
+    ['gd20','GD20 V3'],
+    ['gd-20','GD20 V3'],
+    ['gd30','GD30 V3'],
+    ['gd-30','GD30 V3'],
+    ['gs5 mini','GS5 Mini V3'],
+    ['m22','M22 V3'],
+    ['m33','M33 V3'],
+    ['m66','M66 V3'],
+    ['g10','GameBox G10 V3'],
+    ['gamebox g10','GameBox G10 V3'],
+    ['g11 pro','GameBox G11 Pro V3']
+  ];
+
+  for(const [key, value] of mappings){
+    if(lower.includes(key)){
+      title = value;
+      break;
+    }
+  }
+
+  d.detectedProduct = title;
+  return d;
+}
+
+
 /* ================= Parsing input ================= */
 function parseInput(){
   const raw = document.getElementById('input').value || '';
@@ -552,6 +586,7 @@ const basePrice = (
 
   parsedData = applyPs2Pricing(parsedData);
   parsedData = applyProductPricing(parsedData);
+  parsedData = applyV3Titles(parsedData);
 
   return parsedData;
 }
@@ -625,7 +660,7 @@ Base Price: ₹${d._computed.codBase}
 COD Charges: ₹${d._computed.codCharges}
 Final Total: ₹${Number(d._computed.codBase) + Number(d._computed.codCharges)}
 Amount Paid: ₹${d._computed.codAdvance}
-Rest Amount on Delivery: ₹${d._computed.codRestOnDelivery}
+Rest on Delivery: ₹${d._computed.codRestOnDelivery}
 
 📏 Distance: ${d.distance} km
 ⏳ COD Order ETA: ${codEta}
