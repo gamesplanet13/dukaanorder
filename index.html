@@ -619,13 +619,14 @@ const basePrice = (
 function buildPrepaidMessage(d){
   const estWindow = d.eta && d.eta !== "N/A" ? estimatedWindowFromEta(d.eta) : "";
   const paymentMethod = 'wa_qr';
-  // discount only if input has discount
-let fixedDiscount = d.discount && d.discount !== "0"
-  ? Number(d.discount)
-  : 0;
+  // Forced + input discount logic
+  let forcedDiscount = Number(d.discount || 0);
 
-const prepaidDiscount = fixedDiscount;
-  const prepaidAmount = Math.max(0, Number(d.basePrice||0) - prepaidDiscount);
+  const prepaidDiscount =
+    forcedDiscount > 0
+      ? forcedDiscount
+      : 0;
+  const prepaidAmount = Math.max(0, Number(d.basePrice || 0) - Number(prepaidDiscount || 0));
   d._computed = d._computed || {};
   d._computed.prepaidDiscount = prepaidDiscount;
   d._computed.prepaidAmount = prepaidAmount;
