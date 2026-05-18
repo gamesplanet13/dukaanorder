@@ -83,7 +83,7 @@ function getCustomerMobileFromRaw(raw){
   if(m){
     m = m.replace(/\D/g,'').replace(/^0+/,'');
 
-    if(m.length === 12 && m.startsWith('91')) return m;
+    if(m.length === 12 && m.startsWith('91')) return m.slice(2);
     if(m.length === 10) return m;
     if(m.length > 10) return m.slice(-10);
   }
@@ -99,7 +99,7 @@ function extractAltMobile(raw, primary){
   if(altMatch && altMatch[1]){
     let a = altMatch[1].replace(/\D/g,'').replace(/^0+/,'');
 
-    if(a.length === 12 && a.startsWith('91')) return a;
+    if(a.length === 12 && a.startsWith('91')) return a.slice(2);
     if(a.length === 10) return a;
     if(a.length > 10) return a.slice(-10);
   }
@@ -155,10 +155,45 @@ function bumpEtaRangeString(etaStr, addMin=2, addMax=3){
   const min = r.min + addMin; const max = r.max + addMax;
   return (min===max) ? `${min} days` : `${min}-${max} days`;
 }
-function todayStrOffset(days){
-  const d = new Date(); d.setDate(d.getDate()+days);
-  return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+
+function getDispatchDate(){
+  const now = new Date();
+  const dispatch = new Date(now);
+
+  // Sunday = 0, Saturday = 6
+  const day = dispatch.getDay();
+
+  // Saturday -> Monday dispatch
+  if(day === 6){
+    dispatch.setDate(dispatch.getDate() + 2);
+  }
+  // Sunday -> Monday dispatch
+  else if(day === 0){
+    dispatch.setDate(dispatch.getDate() + 1);
+  }
+  // Mon-Fri -> Next day dispatch
+  else{
+    dispatch.setDate(dispatch.getDate() + 1);
+
+    // if next day becomes Sunday skip to Monday
+    if(dispatch.getDay() === 0){
+      dispatch.setDate(dispatch.getDate() + 1);
+    }
+  }
+
+  return dispatch;
 }
+
+function todayStrOffset(days){
+  const d = getDispatchDate();
+  d.setDate(d.getDate() + days);
+
+  return d.toLocaleDateString('en-IN',{
+    day:'2-digit',
+    month:'short'
+  });
+}
+
 function estimatedWindowFromEta(etaStr){
   const r = parseEtaRange(etaStr); if(!r) return etaStr || "";
   const start = todayStrOffset(r.min); const end = todayStrOffset(r.max);
@@ -317,6 +352,71 @@ function applyPs2Pricing(d){
 }
 
 
+
+/* ================= PREFILLED PRODUCT PRICE + DISCOUNT LOGIC ================= */
+function applyProductPricing(d){
+  const text = ((d.detectedProduct || '') + ' ' + (d.variant || '')).toLowerCase();
+
+  const products = [
+    {keys:['r35s'], price:2699, discount:100},
+    {keys:['r36s'], price:2899, discount:100},
+    {keys:['r36 ultra'], price:2999, discount:100},
+    {keys:['g10','gamebox g10'], price:3599, discount:100},
+    {keys:['g90'], price:4699, discount:150},
+    {keys:['gd10'], price:2399, discount:100},
+
+    {keys:['g11 pro san andreas'], prices:{'64':6599,'128':9300,'256':11300}, discounts:{'64':200,'128':300,'256':500}},
+    {keys:['g11 pro special'], prices:{'64':6699,'128':9598,'256':11798}, discounts:{'64':200,'128':300,'256':500}},
+    {keys:['g11 pro'], prices:{'64':4599,'128':7300,'256':9300}, discounts:{'64':200,'128':300,'256':500}},
+
+    {keys:['gd30 special','gd30 v3 special'], prices:{'64':6899,'128':9399,'256':11399}, discounts:{'64':200,'128':300,'256':500}},
+    {keys:['gd30','gd-30'], prices:{'64':3899,'128':6399,'256':8399}, discounts:{'64':200,'128':300,'256':500}},
+
+    {keys:['gd35 san andreas'], prices:{'64':6599,'128':9300,'256':11300}, discounts:{'64':200,'128':300,'256':500}},
+    {keys:['gd35'], prices:{'64':4599,'128':7300,'256':9300}, discounts:{'64':200,'128':300,'256':500}},
+
+    {keys:['gs5 mini'], prices:{'64':3699,'128':6199,'256':8199}, discounts:{'64':200,'128':300,'256':500}},
+
+    {keys:['m22'], prices:{'64':3499,'128':5999,'256':7999}, discounts:{'64':200,'128':300,'256':500}},
+    {keys:['m33'], prices:{'64':2699,'128':5199,'256':7199}, discounts:{'64':200,'128':300,'256':500}},
+    {keys:['m66'], prices:{'64':2899,'128':5499,'256':7499}, discounts:{'64':200,'128':300,'256':500}},
+
+    {keys:['m88'], price:6499, discount:500},
+
+    {keys:['pandora gaming stick lite','m8 gamestick lite','pandora mini'], price:1599, discount:100},
+    {keys:['pandora pro','gamestick pro','p5','aokoki 2024','m15'], price:1899, discount:200}
+  ];
+
+  // FMCB / USB / Combo discount forced 5%
+  if(/fmcb|funtuna|usb|combo|ssd|hdd|pendrive|pd/.test(text)){
+    d.discount = Math.round(Number(d.basePrice || 0) * 0.05);
+    return d;
+  }
+
+  for(const p of products){
+    if(p.keys.some(k => text.includes(k))){
+
+      // storage detection
+      let storage = '64';
+      if(/128gb|128 gb/.test(text)) storage = '128';
+      if(/256gb|256 gb/.test(text)) storage = '256';
+
+      if(p.prices){
+        d.basePrice = String(p.prices[storage]);
+        d.discount = String(p.discounts[storage]);
+      }else{
+        d.basePrice = String(p.price);
+        d.discount = String(p.discount);
+      }
+
+      return d;
+    }
+  }
+
+  return d;
+}
+
+
 /* ================= Parsing input ================= */
 function parseInput(){
   const raw = document.getElementById('input').value || '';
@@ -451,6 +551,7 @@ const basePrice = (
   };
 
   parsedData = applyPs2Pricing(parsedData);
+  parsedData = applyProductPricing(parsedData);
 
   return parsedData;
 }
@@ -460,7 +561,10 @@ function buildPrepaidMessage(d){
   const estWindow = d.eta && d.eta !== "N/A" ? estimatedWindowFromEta(d.eta) : "";
   const paymentMethod = 'wa_qr';
   // discount only if input has discount
-let fixedDiscount = d.discount && d.discount !== "0" ? Number(d.discount) : 0;
+let fixedDiscount = d.discount && d.discount !== "0"
+  ? Number(d.discount)
+  : 0;
+
 const prepaidDiscount = fixedDiscount;
   const prepaidAmount = Math.max(0, Number(d.basePrice||0) - prepaidDiscount);
   d._computed = d._computed || {};
@@ -483,7 +587,7 @@ Post office: ${d.postOffice || ''}
 Product: ${d.detectedProduct}
 Variant: ${d.variant}
 Base Price: ₹${d.basePrice}
-Discount Applied: ₹${d._computed.prepaidDiscount}
+Discount Applied: ₹${prepaidDiscount || 0}
 Amount Paid: ₹${d._computed.prepaidAmount}
 
 📏 Distance: ${d.distance} km
@@ -519,9 +623,8 @@ Product: ${d.detectedProduct}
 Variant: ${d.variant}
 Base Price: ₹${d._computed.codBase}
 COD Charges: ₹${d._computed.codCharges}
-Courier Charges (COD): ₹${d._computed.codCharges}
 Final Total: ₹${Number(d._computed.codBase) + Number(d._computed.codCharges)}
-Amount Paid (Advance): ₹${d._computed.codAdvance}
+Amount Paid: ₹${d._computed.codAdvance}
 Rest Amount on Delivery: ₹${d._computed.codRestOnDelivery}
 
 📏 Distance: ${d.distance} km
